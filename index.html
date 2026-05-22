@@ -240,7 +240,7 @@
 
     let inventoryData = [], transactionData = [], wishlistData = [], isAdmin = false;
     const formatRp = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num || 0);
-    const getToday = () => new Date().toISOString().split('T')[0];
+    const getToday = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().split('T')[0]; };
     document.getElementById('trx-date').value = getToday();
 
     window.openModal = (id) => { 
@@ -327,7 +327,7 @@
     window.saveWishlist = async (e) => { e.preventDefault(); if(!isAdmin) return; try { await addDoc(collection(db, "wishlist"), { name: document.getElementById('wl-name').value, target: parseInt(document.getElementById('wl-target').value), createdAt: Date.now() }); window.closeModal('modal-wishlist'); document.getElementById('form-wl').reset(); } catch (err) { alert(err.message); } };
 
     // ACTION BUTTONS
-    window.deleteInvData = async (id, linkedTrxId) => { if(!isAdmin) return; if(confirm('Yakin hapus koleksi ini? (Transaksi pembeliannya juga dihapus)')) { try { await deleteDoc(doc(db, "inventory", id)); if(linkedTrxId && linkedTrxId !== 'undefined') await deleteDoc(doc(db, "transactions", linkedTrxId)); } catch(err) { alert(err.message); } } };
+    window.deleteInvData = async (id, linkedTrxId) => { if(!isAdmin) return; if(confirm('Yakin hapus koleksi ini? (Transaksi pembeliannya di Buku Kas juga akan ikut Dihapus agar Saldo Kas kembali akurat)')) { try { await deleteDoc(doc(db, "inventory", id)); if(linkedTrxId && linkedTrxId !== 'undefined') await deleteDoc(doc(db, "transactions", linkedTrxId)); } catch(err) { alert(err.message); } } };
     window.deleteTrxData = async (col, id) => { if(!isAdmin) return; if(confirm('Yakin ingin menghapus transaksi ini?')) { try { await deleteDoc(doc(db, col, id)); } catch(err) { alert(err.message); } } };
     
     // BUKA BOX (RIP)
@@ -433,17 +433,17 @@
       window.renderInv(); renderWishlist();
       let income = 0, expense = 0, loan = 0, capital = 0;
       
-      // LOGIKA AGREGASI UNTUK GRAFIK BULANAN
-      const monthlyData = {};
+      // LOGIKA AGREGASI UNTUK GRAFIK HARIAN
+      const dailyData = {};
 
       document.getElementById('table-trx-full').innerHTML = transactionData.map(t => {
         if(t.type === 'Sales') income += t.amount; if(t.type === 'Expense') expense += t.amount; if(t.type === 'Loan') loan += t.amount; if(t.type === 'Capital') capital += t.amount;
         
-        // Populate monthly data
-        const monthKey = t.date.substring(0, 7); // YYYY-MM
-        if(!monthlyData[monthKey]) monthlyData[monthKey] = { inc: 0, exp: 0 };
-        if(t.type === 'Sales') monthlyData[monthKey].inc += t.amount;
-        if(t.type === 'Expense') monthlyData[monthKey].exp += t.amount;
+        // Populate daily data for charts
+        const dateKey = t.date; // YYYY-MM-DD
+        if(!dailyData[dateKey]) dailyData[dateKey] = { inc: 0, exp: 0 };
+        if(t.type === 'Sales') dailyData[dateKey].inc += t.amount;
+        if(t.type === 'Expense') dailyData[dateKey].exp += t.amount;
 
         let colorClass = 'bg-slate-100 text-slate-700';
         if(t.type === 'Sales') colorClass = 'bg-green-100 text-green-700';
@@ -468,20 +468,23 @@
 
       document.getElementById('val-income').innerText = formatRp(income); document.getElementById('val-expense').innerText = formatRp(expense);
       document.getElementById('val-asset').innerText = formatRp(assetValue);
-      updateCharts(monthlyData, catCount);
+      updateCharts(dailyData, catCount);
     }
 
     let barChartInst = null, pieChartInst = null;
-    function updateCharts(monthlyData, catCount) {
+    function updateCharts(dailyData, catCount) {
       Chart.defaults.color = '#64748b'; Chart.defaults.font.family = "'Inter', sans-serif";
       
-      // Mengubah Data Bulanan menjadi Array untuk Chart
-      const sortedMonths = Object.keys(monthlyData).sort(); // Urutkan YYYY-MM
+      // Mengubah Data Harian menjadi Array untuk Chart
+      const sortedDays = Object.keys(dailyData).sort(); // Urutkan YYYY-MM-DD
       const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
-      const labels = sortedMonths.map(m => { const [yy, mm] = m.split('-'); return `${monthNames[parseInt(mm)-1]} '${yy.substring(2)}`; });
+      const labels = sortedDays.map(d => { 
+        const [yy, mm, dd] = d.split('-'); 
+        return `${parseInt(dd)} ${monthNames[parseInt(mm)-1]}`; 
+      });
       
-      const incData = sortedMonths.map(m => monthlyData[m].inc);
-      const expData = sortedMonths.map(m => monthlyData[m].exp);
+      const incData = sortedDays.map(d => dailyData[d].inc);
+      const expData = sortedDays.map(d => dailyData[d].exp);
 
       if(labels.length === 0) { labels.push('Belum ada data'); incData.push(0); expData.push(0); }
 
