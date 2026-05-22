@@ -424,7 +424,7 @@
       const filtered = inventoryData.filter(i => i.name.toLowerCase().includes(term) || (i.set && i.set.toLowerCase().includes(term)));
       
       document.getElementById('grid-inventory').innerHTML = filtered.map(i => {
-        const imageContent = i.imgUrl ? `<img src="${i.imgUrl}" alt="${i.name}" class="w-full h-full object-cover" onerror="this.outerHTML='<i class=\\'fa-solid fa-image text-4xl text-slate-300\\'></i>'">` : `<i class="fa-solid ${i.category==='Card'?'fa-id-card':(i.category==='Box'?'fa-box-open':'fa-ghost')} text-4xl text-slate-300"></i>`;
+        const imageContent = i.imgUrl ? `<img src="${i.imgUrl}" alt="${i.name}" class="w-full h-full object-contain p-3 drop-shadow-md transition-transform hover:scale-110" onerror="this.outerHTML='<i class=\\'fa-solid fa-image text-4xl text-slate-300\\'></i>'">` : `<i class="fa-solid ${i.category==='Card'?'fa-id-card':(i.category==='Box'?'fa-box-open':'fa-ghost')} text-4xl text-slate-300"></i>`;
         
         let statusBadge = '';
         if(i.status === 'Sold') statusBadge = '<div class="absolute inset-0 bg-white/70 backdrop-blur-[2px] flex items-center justify-center"><span class="bg-slate-800 text-white font-bold px-4 py-1.5 rounded rotate-12 shadow-lg">TERJUAL</span></div>';
