@@ -34,12 +34,15 @@
 </head>
 <body class="p-4 md:p-8 min-h-screen relative">
 
-  <!-- TOP BAR (Login/Auth) -->
+  <!-- TOP BAR (Login/Auth & Export) -->
   <div class="fixed top-4 right-4 z-40 flex items-center gap-3">
     <div id="auth-status-badge" class="bg-white px-3 py-1.5 rounded-full shadow border border-slate-200 text-xs font-semibold text-slate-500">
       <span class="admin-only" style="display:none;"><i class="fa-solid fa-unlock text-green-500"></i> Edit Mode</span>
       <span class="viewer-only"><i class="fa-solid fa-lock text-slate-400"></i> Read-Only Mode</span>
     </div>
+    <button onclick="window.exportCSV()" class="admin-only bg-emerald-500 text-white px-4 py-1.5 rounded-full shadow hover:bg-emerald-600 text-sm font-medium transition flex items-center gap-2" style="display: none;">
+      <i class="fa-solid fa-file-excel"></i> Export Excel
+    </button>
     <button onclick="window.openModal('modal-login')" class="viewer-only bg-slate-800 text-white px-4 py-1.5 rounded-full shadow hover:bg-slate-700 text-sm font-medium transition">
       Login Admin
     </button>
@@ -66,22 +69,17 @@
     <!-- TAB 1: DASHBOARD -->
     <div id="tab-dashboard" class="tab-content active">
       <h2 class="text-2xl font-bold text-slate-800 mb-6">Buku Kas Utama</h2>
-      <!-- SALDO KAS UTAMA -->
       <div class="card mb-6 border-l-8 border-blue-500 bg-blue-50/50 flex flex-col md:flex-row justify-between items-center gap-4">
-        <div>
-          <h3 class="text-blue-600 font-bold uppercase tracking-wider text-sm"><i class="fa-solid fa-wallet"></i> Saldo Kas (Uang Tunai)</h3>
-          <p class="text-xs text-slate-500 mt-1">Suntikan Modal + Hasil Penjualan - Belanja Stok</p>
-        </div>
+        <div><h3 class="text-blue-600 font-bold uppercase tracking-wider text-sm"><i class="fa-solid fa-wallet"></i> Saldo Kas (Uang Tunai)</h3><p class="text-xs text-slate-500 mt-1">Suntikan Modal + Hasil Penjualan - Belanja Stok</p></div>
         <div class="text-4xl font-extrabold text-blue-700" id="val-cash">Rp 0</div>
       </div>
-
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div class="card border-t-4 border-green-500"><h3 class="text-slate-500 font-medium mb-1 text-sm">Pemasukan (Sales)</h3><p class="text-2xl font-bold text-slate-800" id="val-income">Rp 0</p></div>
         <div class="card border-t-4 border-red-500"><h3 class="text-slate-500 font-medium mb-1 text-sm">Pengeluaran (Belanja)</h3><p class="text-2xl font-bold text-slate-800" id="val-expense">Rp 0</p></div>
         <div class="card border-t-4 border-purple-500"><h3 class="text-slate-500 font-medium mb-1 text-sm">Nilai Aset Tersimpan</h3><p class="text-2xl font-bold text-slate-800" id="val-asset">Rp 0</p></div>
       </div>
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div class="card lg:col-span-2"><h3 class="text-sm font-bold text-slate-800 mb-4 uppercase text-center">Cash Flow Bulanan</h3><div class="relative h-64 w-full"><canvas id="barChart"></canvas></div></div>
+        <div class="card lg:col-span-2"><h3 class="text-sm font-bold text-slate-800 mb-4 uppercase text-center">Riwayat Cash Flow Bulanan</h3><div class="relative h-64 w-full"><canvas id="barChart"></canvas></div></div>
         <div class="card"><h3 class="text-sm font-bold text-slate-800 mb-4 uppercase text-center">Kategori Aset</h3><div class="relative h-64 w-full"><canvas id="pieChart"></canvas></div></div>
       </div>
     </div>
@@ -148,9 +146,7 @@
         <button type="submit" class="w-full bg-slate-800 text-white px-4 py-2 rounded-lg font-semibold mb-3">Login Email</button>
       </form>
       <div class="relative flex py-2 items-center"><div class="flex-grow border-t border-slate-200"></div><span class="flex-shrink-0 mx-4 text-slate-400 text-xs">ATAU</span><div class="flex-grow border-t border-slate-200"></div></div>
-      <button onclick="window.loginWithGoogle()" class="w-full bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2 mb-2 shadow-sm transition">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5"> Login dengan Google
-      </button>
+      <button onclick="window.loginWithGoogle()" class="w-full bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2 mb-2 shadow-sm transition"><img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5"> Login dengan Google</button>
       <button type="button" onclick="window.closeModal('modal-login')" class="w-full text-slate-500 py-2 text-sm hover:text-slate-800">Batal</button>
     </div>
   </div>
@@ -174,11 +170,25 @@
       <form id="form-inv" onsubmit="window.saveInv(event)">
         <input type="hidden" id="inv-wl-id">
         <div class="mb-3"><label class="block text-slate-600 text-xs font-medium mb-1">Nama Kartu/Box</label><input type="text" id="inv-name" required class="w-full border rounded px-3 py-1.5 outline-none"></div>
-        <div class="mb-3"><label class="block text-slate-600 text-xs font-medium mb-1">Ekspansi / Set</label><input type="text" id="inv-set" class="w-full border rounded px-3 py-1.5 outline-none"></div>
+        <div class="mb-3 flex gap-4">
+          <div class="w-1/2"><label class="block text-slate-600 text-xs font-medium mb-1">Ekspansi / Set</label><input type="text" id="inv-set" class="w-full border rounded px-3 py-1.5 outline-none"></div>
+          <div class="w-1/2"><label class="block text-slate-600 text-xs font-medium mb-1">Sumber / Marketplace</label><input type="text" id="inv-source" placeholder="Contoh: Tokopedia, LGS" class="w-full border rounded px-3 py-1.5 outline-none"></div>
+        </div>
+        
+        <!-- NEW: Box Break / Pulls Selection -->
+        <div class="mb-3 p-3 bg-purple-50 border border-purple-100 rounded-lg">
+          <label class="block text-purple-800 text-xs font-bold mb-1"><i class="fa-solid fa-dice text-purple-500"></i> Hasil Gacha Dari Box Mana? (Opsional)</label>
+          <select id="inv-pulled-from" onchange="window.handleGachaSelect()" class="w-full border border-purple-200 rounded px-3 py-1.5 outline-none text-sm text-purple-700 bg-white">
+            <option value="">-- Bukan hasil gacha / Beli Satuan --</option>
+            <!-- Diisi otomatis via JS dari daftar Box yang berstatus 'Opened' -->
+          </select>
+        </div>
+
         <div class="mb-3"><label class="block text-slate-600 text-xs font-medium mb-1">Link Foto (Image URL)</label><input type="url" id="inv-img" class="w-full border rounded px-3 py-1.5 outline-none"><p class="text-[10px] text-slate-400">Copy Image Address dari Google (Optional)</p></div>
-        <div class="mb-3 flex gap-4"><div class="w-1/2"><label class="block text-slate-600 text-xs font-medium mb-1">Kategori</label><select id="inv-cat" class="w-full border rounded px-3 py-1.5 outline-none"><option value="Card">Single Card</option><option value="Box">Sealed Box</option><option value="Slab">Graded Slab</option><option value="Other">Lainnya</option></select></div><div class="w-1/2"><label class="block text-slate-600 text-xs font-medium mb-1">Status</label><select id="inv-status" class="w-full border rounded px-3 py-1.5 outline-none"><option value="Kept">Disimpan</option><option value="Sold">Terjual</option></select></div></div>
+        <div class="mb-3 flex gap-4"><div class="w-1/2"><label class="block text-slate-600 text-xs font-medium mb-1">Kategori</label><select id="inv-cat" class="w-full border rounded px-3 py-1.5 outline-none"><option value="Card">Single Card</option><option value="Box">Sealed Box / Pack</option><option value="Slab">Graded Slab</option><option value="Other">Lainnya</option></select></div><div class="w-1/2"><label class="block text-slate-600 text-xs font-medium mb-1">Status</label><select id="inv-status" class="w-full border rounded px-3 py-1.5 outline-none"><option value="Kept">Disimpan</option><option value="Sold">Terjual</option></select></div></div>
+        
         <div class="mb-4 flex gap-4"><div class="w-1/2"><label class="block text-slate-600 text-xs font-medium mb-1">Modal / Beli (Rp)</label><input type="number" id="inv-buy" required class="w-full border rounded px-3 py-1.5 outline-none bg-blue-50 text-blue-800 font-bold border-blue-200"></div><div class="w-1/2"><label class="block text-slate-600 text-xs font-medium mb-1">Harga Pasar (Rp)</label><input type="number" id="inv-market" required class="w-full border rounded px-3 py-1.5 outline-none"></div></div>
-        <p class="text-[10px] text-blue-500 mb-4 bg-blue-50 p-2 rounded border border-blue-100">*Otomatis: Menyimpan barang akan otomatis mencatat Pengeluaran (Beli) ke Buku Kas sejumlah angka Modal di atas.</p>
+        <p class="text-[10px] text-blue-500 mb-4 bg-blue-50 p-2 rounded border border-blue-100">*Catatan: Menyimpan barang dengan Harga Modal > 0 akan otomatis mencatat Pengeluaran (Beli) ke Buku Kas.</p>
         <div class="flex justify-end gap-3"><button type="button" onclick="window.closeModal('modal-inv')" class="px-3 py-1 text-sm text-slate-500">Batal</button><button type="submit" class="bg-red-500 text-white px-4 py-1.5 rounded-lg text-sm">Simpan</button></div>
       </form>
     </div>
@@ -226,25 +236,27 @@
     import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = { apiKey: "AIzaSyDgGPKX3ptOs9ocUPuorJU0QQfj4PUb6v4", authDomain: "pokemon-manager-b4f59.firebaseapp.com", projectId: "pokemon-manager-b4f59", storageBucket: "pokemon-manager-b4f59.firebasestorage.app", messagingSenderId: "86287237292", appId: "1:86287237292:web:5325da646689db9261df09", measurementId: "G-5BZFG1G5R6" };
-    
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const provider = new GoogleAuthProvider();
-    const db = getFirestore(app);
+    const app = initializeApp(firebaseConfig); const auth = getAuth(app); const provider = new GoogleAuthProvider(); const db = getFirestore(app);
 
     let inventoryData = [], transactionData = [], wishlistData = [], isAdmin = false;
-    const formatRp = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
+    const formatRp = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num || 0);
     const getToday = () => new Date().toISOString().split('T')[0];
     document.getElementById('trx-date').value = getToday();
 
-    window.openModal = (id) => { document.getElementById(id).classList.add('active'); if(id==='modal-inv') document.getElementById('inv-wl-id').value=''; };
+    window.openModal = (id) => { 
+      document.getElementById(id).classList.add('active'); 
+      if(id === 'modal-inv') {
+        document.getElementById('inv-wl-id').value = '';
+        window.populateGachaDropdown();
+      }
+    };
     window.closeModal = (id) => document.getElementById(id).classList.remove('active');
     window.switchTab = (tabId) => { document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active')); document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active')); document.getElementById(tabId).classList.add('active'); document.getElementById('btn-' + tabId.split('-')[1]).classList.add('active'); };
     window.toggleLoanField = () => { document.getElementById('trx-type').value === 'Loan' ? document.getElementById('trx-loan-div').classList.remove('hidden') : document.getElementById('trx-loan-div').classList.add('hidden'); };
 
-    // AUTHENTICATION
+    // AUTH
     window.loginUser = (e) => { e.preventDefault(); signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-pass').value).then(() => { window.closeModal('modal-login'); }).catch(err => alert("Gagal Login: " + err.message)); };
-    window.loginWithGoogle = () => { signInWithPopup(auth, provider).then(() => { window.closeModal('modal-login'); }).catch(err => alert("Gagal Google Login (Pastikan Provider Google sudah di-Enable di Firebase Console!): \n" + err.message)); };
+    window.loginWithGoogle = () => { signInWithPopup(auth, provider).then(() => { window.closeModal('modal-login'); }).catch(err => alert("Gagal Google Login: \n" + err.message)); };
     window.logout = () => signOut(auth);
 
     onAuthStateChanged(auth, (user) => {
@@ -258,88 +270,147 @@
     onSnapshot(query(collection(db, "transactions"), orderBy("date", "desc")), (snap) => { transactionData = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderAll(); });
     onSnapshot(query(collection(db, "wishlist"), orderBy("createdAt", "desc")), (snap) => { wishlistData = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderWishlist(); });
 
-    // DATABASE SAVING (WITH AUTO-EXPENSE & WISHLIST CONVERT)
+    // DROPDOWN BOX BREAK (GACHA) LOGIC
+    window.populateGachaDropdown = () => {
+      const select = document.getElementById('inv-pulled-from');
+      const openedBoxes = inventoryData.filter(i => i.status === 'Opened');
+      select.innerHTML = `<option value="">-- Bukan hasil gacha / Beli Satuan --</option>` + 
+        openedBoxes.map(b => `<option value="${b.id}">${b.name} (${b.set || 'No Set'})</option>`).join('');
+    };
+    window.handleGachaSelect = () => {
+      const pulledFrom = document.getElementById('inv-pulled-from').value;
+      const buyInput = document.getElementById('inv-buy');
+      if (pulledFrom) {
+        buyInput.value = 0;
+        buyInput.setAttribute('readonly', 'true');
+        buyInput.classList.add('opacity-50', 'bg-slate-200');
+        buyInput.title = "Modal 0 karena ini adalah hasil gacha dari Box yang sudah tercatat pengeluarannya.";
+      } else {
+        buyInput.removeAttribute('readonly');
+        buyInput.classList.remove('opacity-50', 'bg-slate-200');
+        buyInput.title = "";
+      }
+    };
+
+    // SAVING LOGIC
     window.saveInv = async (e) => {
       e.preventDefault(); if(!isAdmin) return;
       try {
         const buyPrice = parseInt(document.getElementById('inv-buy').value);
         const invName = document.getElementById('inv-name').value;
+        const pulledFromId = document.getElementById('inv-pulled-from').value || null;
         let linkedTrxId = null;
 
-        // Auto-Expense Logic
-        if(buyPrice > 0) {
+        // Jika bukan kartu Gacha, dan modal > 0, buat transaksi Expense
+        if(buyPrice > 0 && !pulledFromId) {
           const trxRef = await addDoc(collection(db, "transactions"), { name: "Beli Stok: " + invName, type: "Expense", amount: buyPrice, date: getToday(), person: "", createdAt: Date.now() });
           linkedTrxId = trxRef.id;
         }
 
         await addDoc(collection(db, "inventory"), {
           name: invName, set: document.getElementById('inv-set').value || '', imgUrl: document.getElementById('inv-img').value || '',
+          source: document.getElementById('inv-source').value || '',
           category: document.getElementById('inv-cat').value, status: document.getElementById('inv-status').value,
-          buy: buyPrice, market: parseInt(document.getElementById('inv-market').value), linkedTrxId: linkedTrxId, createdAt: Date.now()
+          buy: buyPrice, market: parseInt(document.getElementById('inv-market').value), 
+          linkedTrxId: linkedTrxId, pulledFromId: pulledFromId, createdAt: Date.now()
         });
 
-        // Wishlist Convert Logic
         const wlId = document.getElementById('inv-wl-id').value;
         if(wlId) await deleteDoc(doc(db, "wishlist", wlId));
 
         window.closeModal('modal-inv'); document.getElementById('form-inv').reset(); document.getElementById('inv-wl-id').value = '';
+        window.handleGachaSelect(); // Reset UI
       } catch (err) { alert(err.message); }
     };
 
-    window.saveTrx = async (e) => {
-      e.preventDefault(); if(!isAdmin) return;
-      try { await addDoc(collection(db, "transactions"), { name: document.getElementById('trx-name').value, type: document.getElementById('trx-type').value, amount: parseInt(document.getElementById('trx-amount').value), date: document.getElementById('trx-date').value, person: document.getElementById('trx-type').value === 'Loan' ? document.getElementById('trx-loan-person').value : '', createdAt: Date.now() }); window.closeModal('modal-trx'); document.getElementById('form-trx').reset(); document.getElementById('trx-date').value = getToday(); } catch (err) { alert(err.message); }
-    };
+    window.saveTrx = async (e) => { e.preventDefault(); if(!isAdmin) return; try { await addDoc(collection(db, "transactions"), { name: document.getElementById('trx-name').value, type: document.getElementById('trx-type').value, amount: parseInt(document.getElementById('trx-amount').value), date: document.getElementById('trx-date').value, person: document.getElementById('trx-type').value === 'Loan' ? document.getElementById('trx-loan-person').value : '', createdAt: Date.now() }); window.closeModal('modal-trx'); document.getElementById('form-trx').reset(); document.getElementById('trx-date').value = getToday(); } catch (err) { alert(err.message); } };
+    window.saveWishlist = async (e) => { e.preventDefault(); if(!isAdmin) return; try { await addDoc(collection(db, "wishlist"), { name: document.getElementById('wl-name').value, target: parseInt(document.getElementById('wl-target').value), createdAt: Date.now() }); window.closeModal('modal-wishlist'); document.getElementById('form-wl').reset(); } catch (err) { alert(err.message); } };
 
-    window.saveWishlist = async (e) => {
-      e.preventDefault(); if(!isAdmin) return;
-      try { await addDoc(collection(db, "wishlist"), { name: document.getElementById('wl-name').value, target: parseInt(document.getElementById('wl-target').value), createdAt: Date.now() }); window.closeModal('modal-wishlist'); document.getElementById('form-wl').reset(); } catch (err) { alert(err.message); }
-    };
-
-    // LINKED DELETION
-    window.deleteInvData = async (id, linkedTrxId) => {
+    // ACTION BUTTONS
+    window.deleteInvData = async (id, linkedTrxId) => { if(!isAdmin) return; if(confirm('Yakin hapus koleksi ini? (Transaksi pembeliannya juga dihapus)')) { try { await deleteDoc(doc(db, "inventory", id)); if(linkedTrxId && linkedTrxId !== 'undefined') await deleteDoc(doc(db, "transactions", linkedTrxId)); } catch(err) { alert(err.message); } } };
+    window.deleteTrxData = async (col, id) => { if(!isAdmin) return; if(confirm('Yakin ingin menghapus transaksi ini?')) { try { await deleteDoc(doc(db, col, id)); } catch(err) { alert(err.message); } } };
+    
+    // BUKA BOX (RIP)
+    window.ripBox = async (id, name) => {
       if(!isAdmin) return;
-      if(confirm('Yakin hapus koleksi ini? (Transaksi pembeliannya di Buku Kas juga akan ikut Dihapus agar Saldo Kas kembali akurat)')) { 
-        try { 
-          await deleteDoc(doc(db, "inventory", id)); 
-          if(linkedTrxId && linkedTrxId !== 'undefined') await deleteDoc(doc(db, "transactions", linkedTrxId)); 
-        } catch(err) { alert(err.message); } 
+      if(confirm(`Yakin ingin membuka Box "${name}"?\nBox ini akan berubah statusnya jadi "Opened". Kartu isinya bisa kamu tambahkan manual nanti dengan Modal = 0.`)) {
+        try { await updateDoc(doc(db, "inventory", id), { status: "Opened" }); alert("Box berhasil dibuka! Tambahkan kartu hasil gacha-mu sekarang."); } catch(err) { alert(err.message); }
       }
     };
-    
-    window.deleteTrxData = async (col, id) => { if(!isAdmin) return; if(confirm('Yakin ingin menghapus transaksi ini?')) { try { await deleteDoc(doc(db, col, id)); } catch(err) { alert(err.message); } } };
 
-    // WISHLIST BUY BUTTON
-    window.buyWishlist = (id, name, target) => {
-      if(!isAdmin) return;
-      document.getElementById('inv-name').value = name;
-      document.getElementById('inv-buy').value = target;
-      document.getElementById('inv-market').value = target; // Default
-      document.getElementById('inv-wl-id').value = id;
-      window.openModal('modal-inv');
-    };
-
+    window.buyWishlist = (id, name, target) => { if(!isAdmin) return; document.getElementById('inv-name').value = name; document.getElementById('inv-buy').value = target; document.getElementById('inv-market').value = target; document.getElementById('inv-wl-id').value = id; window.openModal('modal-inv'); };
     window.openQuickSell = (invId, itemName, marketPrice) => { if(!isAdmin) return; document.getElementById('qs-id').value = invId; document.getElementById('qs-name').value = itemName; document.getElementById('qs-price').value = marketPrice; document.getElementById('qs-title').innerText = "Jual: " + itemName; window.openModal('modal-qs'); };
-    window.submitQuickSell = async (e) => {
-      e.preventDefault(); if(!isAdmin) return;
-      const invId = document.getElementById('qs-id').value; const itemName = document.getElementById('qs-name').value; const sellPrice = parseInt(document.getElementById('qs-price').value);
-      try { await updateDoc(doc(db, "inventory", invId), { status: "Sold" }); await addDoc(collection(db, "transactions"), { name: "Jual " + itemName, type: "Sales", amount: sellPrice, date: getToday(), person: "", createdAt: Date.now() }); window.closeModal('modal-qs'); } catch (err) { alert("Gagal memproses Quick Sell: " + err.message); }
+    window.submitQuickSell = async (e) => { e.preventDefault(); if(!isAdmin) return; const invId = document.getElementById('qs-id').value; const itemName = document.getElementById('qs-name').value; const sellPrice = parseInt(document.getElementById('qs-price').value); try { await updateDoc(doc(db, "inventory", invId), { status: "Sold" }); await addDoc(collection(db, "transactions"), { name: "Jual " + itemName, type: "Sales", amount: sellPrice, date: getToday(), person: "", createdAt: Date.now() }); window.closeModal('modal-qs'); } catch (err) { alert(err.message); } };
+
+    // EXPORT CSV
+    window.exportCSV = () => {
+      if(!isAdmin) return;
+      const download = (filename, text) => { const el = document.createElement('a'); el.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(text)); el.setAttribute('download', filename); el.style.display = 'none'; document.body.appendChild(el); el.click(); document.body.removeChild(el); };
+      
+      const invCsv = ["Nama,Kategori,Status,Sumber/Marketplace,Modal (Rp),Harga Pasar (Rp)"].concat(inventoryData.map(i => `"${i.name}","${i.category}","${i.status}","${i.source||''}","${i.buy}","${i.market}"`)).join('\n');
+      download('Pokemon_Inventory.csv', invCsv);
+
+      const trxCsv = ["Tanggal,Tipe,Keterangan,Nominal (Rp)"].concat(transactionData.map(t => `"${t.date}","${t.type}","${t.name}","${t.amount}"`)).join('\n');
+      download('Pokemon_Transactions.csv', trxCsv);
+      
+      alert("2 File CSV berhasil di-download! Cek folder Downloads kamu.");
     };
 
     window.renderInv = () => {
       const term = (document.getElementById('search-inv')?.value || '').toLowerCase();
       const filtered = inventoryData.filter(i => i.name.toLowerCase().includes(term) || (i.set && i.set.toLowerCase().includes(term)));
+      
       document.getElementById('grid-inventory').innerHTML = filtered.map(i => {
         const imageContent = i.imgUrl ? `<img src="${i.imgUrl}" alt="${i.name}" class="w-full h-full object-cover" onerror="this.outerHTML='<i class=\\'fa-solid fa-image text-4xl text-slate-300\\'></i>'">` : `<i class="fa-solid ${i.category==='Card'?'fa-id-card':(i.category==='Box'?'fa-box-open':'fa-ghost')} text-4xl text-slate-300"></i>`;
+        
+        let statusBadge = '';
+        if(i.status === 'Sold') statusBadge = '<div class="absolute inset-0 bg-white/70 backdrop-blur-[2px] flex items-center justify-center"><span class="bg-slate-800 text-white font-bold px-4 py-1.5 rounded rotate-12 shadow-lg">TERJUAL</span></div>';
+        if(i.status === 'Opened') statusBadge = '<div class="absolute inset-0 bg-white/50 backdrop-blur-[1px] flex items-center justify-center"><span class="bg-purple-600 text-white font-bold px-4 py-1.5 rounded rotate-12 shadow-lg">DIBUKA (RIPPED)</span></div>';
+
+        // Pulled From Info
+        let gachaInfo = '';
+        if(i.pulledFromId) {
+          const parentBox = inventoryData.find(b => b.id === i.pulledFromId);
+          if(parentBox) gachaInfo = `<div class="text-[10px] font-bold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full inline-block mb-2"><i class="fa-solid fa-dice"></i> Tarikan dari: ${parentBox.name}</div>`;
+        }
+
+        // Box ROI Info (If opened)
+        let roiInfo = '';
+        if(i.status === 'Opened' && (i.category === 'Box' || i.category === 'Pack')) {
+          const childPulls = inventoryData.filter(c => c.pulledFromId === i.id);
+          const totalPullsValue = childPulls.reduce((sum, child) => sum + child.market, 0);
+          const profitGacha = totalPullsValue - i.buy;
+          roiInfo = `
+            <div class="mt-3 bg-purple-50 p-2 rounded-lg border border-purple-100 text-xs shadow-inner">
+              <div class="font-bold text-purple-800 mb-1 flex justify-between"><span>📊 Kalkulator Gacha</span> <span class="bg-purple-200 px-1.5 rounded">${childPulls.length} Kartu</span></div>
+              <div class="flex justify-between text-slate-600 mb-0.5"><span>Modal Box:</span> <span>${formatRp(i.buy)}</span></div>
+              <div class="flex justify-between text-slate-600 mb-1"><span>Total Harga Pulls:</span> <span>${formatRp(totalPullsValue)}</span></div>
+              <div class="flex justify-between font-bold pt-1 border-t border-purple-200"><span>ROI Profit:</span> <span class="${profitGacha>=0?'text-green-600':'text-red-600'}">${profitGacha>=0?'+':''}${formatRp(profitGacha)}</span></div>
+            </div>`;
+        }
+
         return `
-        <div class="item-card"><div class="h-44 bg-slate-100 flex flex-col items-center justify-center border-b border-slate-200 relative overflow-hidden">${imageContent}${i.status === 'Sold' ? '<div class="absolute inset-0 bg-white/70 backdrop-blur-[2px] flex items-center justify-center"><span class="bg-slate-800 text-white font-bold px-4 py-1.5 rounded rotate-12 shadow-lg">TERJUAL</span></div>' : ''}</div>
-          <div class="p-4 flex flex-col flex-1"><h3 class="font-bold text-slate-800 text-lg leading-tight mb-1 truncate" title="${i.name}">${i.name}</h3><div class="text-xs text-slate-500 mb-3 flex items-center gap-1"><span class="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">${i.category}</span>${i.set ? `<span class="truncate">${i.set}</span>` : ''}</div>
-            <div class="mt-auto"><div class="flex justify-between items-end mb-1"><span class="text-xs font-semibold text-slate-400">Harga Pasar</span><span class="font-bold text-red-500">${formatRp(i.market)}</span></div>
+        <div class="item-card"><div class="h-44 bg-slate-100 flex flex-col items-center justify-center border-b border-slate-200 relative overflow-hidden">${imageContent}${statusBadge}</div>
+          <div class="p-4 flex flex-col flex-1">
+            ${gachaInfo}
+            <h3 class="font-bold text-slate-800 text-lg leading-tight mb-1 truncate" title="${i.name}">${i.name}</h3>
+            <div class="text-[11px] text-slate-500 mb-3 flex items-center flex-wrap gap-1">
+              <span class="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">${i.category}</span>
+              ${i.set ? `<span class="truncate max-w-[80px]" title="${i.set}">${i.set}</span>` : ''}
+              ${i.source ? `<span class="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded flex items-center gap-1"><i class="fa-solid fa-store"></i> ${i.source}</span>` : ''}
+            </div>
+            <div class="mt-auto">
+              ${roiInfo ? roiInfo : `
+              <div class="flex justify-between items-end mb-1"><span class="text-xs font-semibold text-slate-400">Harga Pasar</span><span class="font-bold text-red-500">${formatRp(i.market)}</span></div>
               <div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100 mt-2"><span class="text-xs text-slate-500">Modal: <span class="font-medium text-slate-700">${formatRp(i.buy)}</span></span><span class="text-xs font-bold ${i.market-i.buy >= 0 ? 'text-green-600' : 'text-red-600'}">${i.market-i.buy>=0?'+':''}${formatRp(i.market-i.buy)}</span></div>
+              `}
             </div></div>
-          <div class="admin-flex border-t border-slate-100 p-2 bg-slate-50 justify-between admin-only" style="display: ${isAdmin?'flex':'none'};">
-            ${i.status === 'Kept' ? `<button onclick="window.openQuickSell('${i.id}', '${i.name}', ${i.market})" class="text-xs font-bold text-green-600 hover:bg-green-100 px-3 py-1.5 rounded flex-1 flex justify-center items-center gap-1 transition"><i class="fa-solid fa-money-bill-wave"></i> Quick Sell</button>` : `<div class="text-xs text-slate-400 font-medium px-3 py-1.5 w-full text-center">Telah Dijual</div>`}
-            <button onclick="window.deleteInvData('${i.id}', '${i.linkedTrxId}')" class="text-xs text-slate-400 hover:text-red-500 px-3 py-1.5 rounded transition"><i class="fa-solid fa-trash"></i></button>
+          <div class="admin-flex border-t border-slate-100 p-2 bg-slate-50 justify-between admin-only gap-2" style="display: ${isAdmin?'flex':'none'};">
+            ${i.status === 'Kept' ? `<button onclick="window.openQuickSell('${i.id}', '${i.name}', ${i.market})" class="text-xs font-bold text-green-600 bg-white border border-green-200 hover:bg-green-50 px-3 py-1.5 rounded flex-1 flex justify-center items-center transition shadow-sm"><i class="fa-solid fa-handshake"></i> Sell</button>` : ''}
+            ${i.status === 'Kept' && (i.category === 'Box' || i.category === 'Pack') ? `<button onclick="window.ripBox('${i.id}', '${i.name}')" class="text-xs font-bold text-purple-600 bg-white border border-purple-200 hover:bg-purple-50 px-3 py-1.5 rounded flex-1 flex justify-center items-center transition shadow-sm"><i class="fa-solid fa-scissors"></i> Buka</button>` : ''}
+            ${i.status === 'Opened' ? `<div class="text-xs text-slate-400 font-medium px-3 py-1.5 w-full text-center">Box Telah Dibuka</div>` : ''}
+            ${i.status === 'Sold' ? `<div class="text-xs text-slate-400 font-medium px-3 py-1.5 w-full text-center">Telah Dijual</div>` : ''}
+            <button onclick="window.deleteInvData('${i.id}', '${i.linkedTrxId}')" class="text-xs text-slate-400 hover:text-red-500 px-3 py-1.5 rounded transition bg-white border border-slate-200 hover:border-red-200 shadow-sm"><i class="fa-solid fa-trash"></i></button>
           </div>
         </div>`}).join('');
       if(filtered.length === 0) document.getElementById('grid-inventory').innerHTML = '<div class="col-span-full text-center text-slate-400 py-10">Tidak ada kartu ditemukan.</div>';
@@ -361,8 +432,19 @@
     function renderAll() {
       window.renderInv(); renderWishlist();
       let income = 0, expense = 0, loan = 0, capital = 0;
+      
+      // LOGIKA AGREGASI UNTUK GRAFIK BULANAN
+      const monthlyData = {};
+
       document.getElementById('table-trx-full').innerHTML = transactionData.map(t => {
         if(t.type === 'Sales') income += t.amount; if(t.type === 'Expense') expense += t.amount; if(t.type === 'Loan') loan += t.amount; if(t.type === 'Capital') capital += t.amount;
+        
+        // Populate monthly data
+        const monthKey = t.date.substring(0, 7); // YYYY-MM
+        if(!monthlyData[monthKey]) monthlyData[monthKey] = { inc: 0, exp: 0 };
+        if(t.type === 'Sales') monthlyData[monthKey].inc += t.amount;
+        if(t.type === 'Expense') monthlyData[monthKey].exp += t.amount;
+
         let colorClass = 'bg-slate-100 text-slate-700';
         if(t.type === 'Sales') colorClass = 'bg-green-100 text-green-700';
         if(t.type === 'Expense') colorClass = 'bg-red-100 text-red-700';
@@ -378,7 +460,6 @@
           <td class="p-3 text-center admin-only" style="display:${isAdmin?'table-cell':'none'};"><button onclick="window.deleteTrxData('transactions', '${t.id}')" class="text-slate-300 hover:text-red-500 transition"><i class="fa-solid fa-trash"></i></button></td>
         </tr>`}).join('') || '<tr><td colspan="5" class="text-center p-6 text-slate-400">Belum ada transaksi.</td></tr>';
 
-      // SALDO KAS LOGIC = CAPITAL + SALES - EXPENSE
       const cashBalance = capital + income - expense + loan;
       document.getElementById('val-cash').innerText = formatRp(cashBalance);
 
@@ -387,15 +468,27 @@
 
       document.getElementById('val-income').innerText = formatRp(income); document.getElementById('val-expense').innerText = formatRp(expense);
       document.getElementById('val-asset').innerText = formatRp(assetValue);
-      updateCharts(income, expense, catCount);
+      updateCharts(monthlyData, catCount);
     }
 
     let barChartInst = null, pieChartInst = null;
-    function updateCharts(income, expense, catCount) {
+    function updateCharts(monthlyData, catCount) {
       Chart.defaults.color = '#64748b'; Chart.defaults.font.family = "'Inter', sans-serif";
+      
+      // Mengubah Data Bulanan menjadi Array untuk Chart
+      const sortedMonths = Object.keys(monthlyData).sort(); // Urutkan YYYY-MM
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
+      const labels = sortedMonths.map(m => { const [yy, mm] = m.split('-'); return `${monthNames[parseInt(mm)-1]} '${yy.substring(2)}`; });
+      
+      const incData = sortedMonths.map(m => monthlyData[m].inc);
+      const expData = sortedMonths.map(m => monthlyData[m].exp);
+
+      if(labels.length === 0) { labels.push('Belum ada data'); incData.push(0); expData.push(0); }
+
       const barCtx = document.getElementById('barChart').getContext('2d');
       if(barChartInst) barChartInst.destroy();
-      barChartInst = new Chart(barCtx, { type: 'bar', data: { labels: ['Bulan Ini'], datasets: [ { label: 'Income', data: [income], backgroundColor: '#10b981', borderRadius: 4 }, { label: 'Expense', data: [expense], backgroundColor: '#ef4444', borderRadius: 4 } ] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } } });
+      barChartInst = new Chart(barCtx, { type: 'bar', data: { labels: labels, datasets: [ { label: 'Income', data: incData, backgroundColor: '#10b981', borderRadius: 4 }, { label: 'Expense', data: expData, backgroundColor: '#ef4444', borderRadius: 4 } ] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } } });
+      
       const pieCtx = document.getElementById('pieChart').getContext('2d');
       if(pieChartInst) pieChartInst.destroy();
       pieChartInst = new Chart(pieCtx, { type: 'doughnut', data: { labels: Object.keys(catCount), datasets: [{ data: Object.values(catCount), backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#94a3b8'], borderWidth: 2, borderColor: '#fff' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } }, cutout: '70%' } });
