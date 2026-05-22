@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pokemon Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { background-color: #f8fafc; color: #1e293b; font-family: 'Inter', sans-serif; background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px; }
+    .floating-nav { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); box-shadow: 0 4px 20px rgba(0,0,0,0.05); border-radius: 9999px; }
+    .nav-btn { transition: all 0.2s; border-radius: 9999px; }
+    .nav-btn:hover { background-color: #f1f5f9; }
+    .nav-btn.active { background-color: #fee2e2; color: #ef4444; font-weight: 600; }
+    .card { background-color: #ffffff; border-radius: 1.25rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05); padding: 1.5rem; transition: transform 0.2s; border: 1px solid #f1f5f9; }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    .item-card { background: white; border-radius: 1rem; border: 1px solid #e2e8f0; overflow: hidden; display: flex; flex-direction: column; transition: all 0.2s; }
+    .item-card:hover { border-color: #ef4444; box-shadow: 0 10px 20px rgba(239, 68, 68, 0.1); }
+    .modal { display: none; background-color: rgba(15,23,42,0.6); backdrop-filter: blur(4px); }
+    .modal.active { display: flex; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    
+    .admin-only { display: none !important; }
+    body.is-admin .admin-only { display: block !important; }
+    body.is-admin .admin-flex { display: flex !important; }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen relative">
+
+  <!-- TOP BAR (Login/Auth) -->
+  <div class="fixed top-4 right-4 z-40 flex items-center gap-3">
+    <div id="auth-status-badge" class="bg-white px-3 py-1.5 rounded-full shadow border border-slate-200 text-xs font-semibold text-slate-500">
+      <span class="admin-only" style="display:none;"><i class="fa-solid fa-unlock text-green-500"></i> Edit Mode</span>
+      <span class="viewer-only"><i class="fa-solid fa-lock text-slate-400"></i> Read-Only Mode</span>
+    </div>
+    <button onclick="window.openModal('modal-login')" class="viewer-only bg-slate-800 text-white px-4 py-1.5 rounded-full shadow hover:bg-slate-700 text-sm font-medium transition">
+      Login Admin
+    </button>
+    <button onclick="window.logout()" class="admin-only bg-red-100 text-red-600 px-4 py-1.5 rounded-full shadow hover:bg-red-200 text-sm font-medium transition" style="display: none;">
+      Logout
+    </button>
+  </div>
+
+  <!-- FLOATING NAVIGATION -->
+  <header class="max-w-4xl mx-auto floating-nav p-2 px-6 flex justify-between items-center mb-10 sticky top-4 z-30">
+    <div class="flex items-center gap-2 font-bold text-xl text-slate-800 tracking-tight">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Pok%C3%A9_Ball_icon.svg" class="w-8 h-8 drop-shadow-sm" alt="Pokeball">
+      Pokemon <span class="text-red-500">Tracker</span>
+    </div>
+    <div class="flex gap-1 overflow-x-auto">
+      <button onclick="window.switchTab('tab-dashboard')" id="btn-dashboard" class="nav-btn active px-4 py-2 text-sm text-slate-500 font-medium whitespace-nowrap">Dashboard</button>
+      <button onclick="window.switchTab('tab-inventory')" id="btn-inventory" class="nav-btn px-4 py-2 text-sm text-slate-500 font-medium whitespace-nowrap">Katalog</button>
+      <button onclick="window.switchTab('tab-transactions')" id="btn-transactions" class="nav-btn px-4 py-2 text-sm text-slate-500 font-medium whitespace-nowrap">Transaksi</button>
+      <button onclick="window.switchTab('tab-wishlist')" id="btn-wishlist" class="nav-btn px-4 py-2 text-sm text-slate-500 font-medium whitespace-nowrap">Wishlist</button>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto">
+    <!-- TAB 1: DASHBOARD -->
+    <div id="tab-dashboard" class="tab-content active">
+      <h2 class="text-2xl font-bold text-slate-800 mb-6">Buku Kas Utama</h2>
+      <!-- SALDO KAS UTAMA -->
+      <div class="card mb-6 border-l-8 border-blue-500 bg-blue-50/50 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div>
+          <h3 class="text-blue-600 font-bold uppercase tracking-wider text-sm"><i class="fa-solid fa-wallet"></i> Saldo Kas (Uang Tunai)</h3>
+          <p class="text-xs text-slate-500 mt-1">Suntikan Modal + Hasil Penjualan - Belanja Stok</p>
+        </div>
+        <div class="text-4xl font-extrabold text-blue-700" id="val-cash">Rp 0</div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="card border-t-4 border-green-500"><h3 class="text-slate-500 font-medium mb-1 text-sm">Pemasukan (Sales)</h3><p class="text-2xl font-bold text-slate-800" id="val-income">Rp 0</p></div>
+        <div class="card border-t-4 border-red-500"><h3 class="text-slate-500 font-medium mb-1 text-sm">Pengeluaran (Belanja)</h3><p class="text-2xl font-bold text-slate-800" id="val-expense">Rp 0</p></div>
+        <div class="card border-t-4 border-purple-500"><h3 class="text-slate-500 font-medium mb-1 text-sm">Nilai Aset Tersimpan</h3><p class="text-2xl font-bold text-slate-800" id="val-asset">Rp 0</p></div>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div class="card lg:col-span-2"><h3 class="text-sm font-bold text-slate-800 mb-4 uppercase text-center">Cash Flow Bulanan</h3><div class="relative h-64 w-full"><canvas id="barChart"></canvas></div></div>
+        <div class="card"><h3 class="text-sm font-bold text-slate-800 mb-4 uppercase text-center">Kategori Aset</h3><div class="relative h-64 w-full"><canvas id="pieChart"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- TAB 2: INVENTORY -->
+    <div id="tab-inventory" class="tab-content">
+      <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <div><h2 class="text-2xl font-bold text-slate-800">Jelajahi Koleksi</h2><p class="text-slate-500 text-sm">Database lengkap aset kartu & box.</p></div>
+        <div class="flex gap-3 w-full md:w-auto">
+          <div class="relative w-full md:w-64"><i class="fa-solid fa-search absolute left-3 top-3 text-slate-400"></i><input type="text" id="search-inv" onkeyup="window.renderInv()" placeholder="Cari kartu..." class="w-full bg-white border border-slate-200 rounded-full pl-10 pr-4 py-2 text-sm outline-none focus:border-red-400 shadow-sm"></div>
+          <button onclick="window.openModal('modal-inv')" class="admin-only bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow flex items-center gap-2 whitespace-nowrap" style="display:none;"><i class="fa-solid fa-plus"></i> Add Item</button>
+        </div>
+      </div>
+      <div id="grid-inventory" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+    </div>
+
+    <!-- TAB 3: TRANSACTIONS -->
+    <div id="tab-transactions" class="tab-content">
+      <div class="flex justify-between items-center mb-6">
+        <div><h2 class="text-2xl font-bold text-slate-800">Buku Kas (Transaksi)</h2><p class="text-slate-500 text-sm">Rekap semua perputaran uang tunai.</p></div>
+        <button onclick="window.openModal('modal-trx')" class="admin-only bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm font-semibold shadow flex items-center gap-2 whitespace-nowrap" style="display:none;"><i class="fa-solid fa-plus"></i> Add Transaction</button>
+      </div>
+      <div class="card overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="text-slate-500 text-sm border-b border-slate-200">
+              <th class="p-3 font-semibold">Tanggal</th>
+              <th class="p-3 font-semibold">Tipe</th>
+              <th class="p-3 font-semibold">Keterangan</th>
+              <th class="p-3 font-semibold text-right">Nominal (Rp)</th>
+              <th class="p-3 font-semibold text-center admin-only" style="display:none;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="table-trx-full" class="text-sm text-slate-700"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 4: WISHLIST -->
+    <div id="tab-wishlist" class="tab-content">
+      <div class="flex justify-between items-center mb-6">
+        <div><h2 class="text-2xl font-bold text-slate-800">Target Incaran (Wishlist)</h2><p class="text-slate-500 text-sm">Daftar kartu yang ingin dibeli selanjutnya.</p></div>
+        <button onclick="window.openModal('modal-wishlist')" class="admin-only bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow flex items-center gap-2 whitespace-nowrap" style="display:none;"><i class="fa-solid fa-plus"></i> Add Wishlist</button>
+      </div>
+      <div id="grid-wishlist" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </div>
+  </main>
+
+
+  <!-- ==============================================
+       MODALS
+       ============================================== -->
+  
+  <!-- Login Modal -->
+  <div id="modal-login" class="modal fixed inset-0 z-50 justify-center items-center">
+    <div class="bg-white rounded-2xl p-8 w-full max-w-sm shadow-2xl border border-slate-100">
+      <div class="text-center mb-6">
+        <div class="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center text-xl mx-auto mb-3"><i class="fa-solid fa-lock"></i></div>
+        <h2 class="text-2xl font-bold text-slate-800">Buka Kunci Admin</h2>
+      </div>
+      <form onsubmit="window.loginUser(event)">
+        <div class="mb-4"><input type="email" id="login-email" placeholder="Email" required class="w-full border rounded-lg px-4 py-2 outline-none"></div>
+        <div class="mb-4"><input type="password" id="login-pass" placeholder="Password" required class="w-full border rounded-lg px-4 py-2 outline-none"></div>
+        <button type="submit" class="w-full bg-slate-800 text-white px-4 py-2 rounded-lg font-semibold mb-3">Login Email</button>
+      </form>
+      <div class="relative flex py-2 items-center"><div class="flex-grow border-t border-slate-200"></div><span class="flex-shrink-0 mx-4 text-slate-400 text-xs">ATAU</span><div class="flex-grow border-t border-slate-200"></div></div>
+      <button onclick="window.loginWithGoogle()" class="w-full bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2 mb-2 shadow-sm transition">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5"> Login dengan Google
+      </button>
+      <button type="button" onclick="window.closeModal('modal-login')" class="w-full text-slate-500 py-2 text-sm hover:text-slate-800">Batal</button>
+    </div>
+  </div>
+
+  <!-- Quick Sell Modal -->
+  <div id="modal-qs" class="modal fixed inset-0 z-50 justify-center items-center">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-green-100">
+      <div class="text-center mb-4 border-b pb-4"><div class="w-12 h-12 bg-green-100 text-green-500 rounded-full flex items-center justify-center text-xl mx-auto mb-3"><i class="fa-solid fa-handshake"></i></div><h2 class="text-xl font-bold text-slate-800" id="qs-title">Jual Cepat</h2></div>
+      <form id="form-qs" onsubmit="window.submitQuickSell(event)">
+        <input type="hidden" id="qs-id"><input type="hidden" id="qs-name">
+        <div class="mb-6"><label class="block text-slate-600 text-sm font-medium mb-1">Terjual di Harga Aktual (Rp):</label><input type="number" id="qs-price" required class="w-full border border-green-200 bg-green-50 text-green-700 font-bold text-lg rounded-lg px-4 py-3 outline-none"><p class="text-xs text-slate-400 mt-2">*Harga pasar telah diisi otomatis. Ubah jika perlu.</p></div>
+        <div class="flex justify-end gap-3"><button type="button" onclick="window.closeModal('modal-qs')" class="px-4 py-2 text-slate-500 font-medium">Batal</button><button type="submit" class="bg-green-500 text-white px-6 py-2 rounded-lg font-bold">Deal! Jual</button></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Inventory Modal -->
+  <div id="modal-inv" class="modal fixed inset-0 z-50 justify-center items-center">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+      <h2 class="text-xl font-bold text-slate-800 mb-4 border-b pb-2">Tambah Koleksi</h2>
+      <form id="form-inv" onsubmit="window.saveInv(event)">
+        <input type="hidden" id="inv-wl-id">
+        <div class="mb-3"><label class="block text-slate-600 text-xs font-medium mb-1">Nama Kartu/Box</label><input type="text" id="inv-name" required class="w-full border rounded px-3 py-1.5 outline-none"></div>
+        <div class="mb-3"><label class="block text-slate-600 text-xs font-medium mb-1">Ekspansi / Set</label><input type="text" id="inv-set" class="w-full border rounded px-3 py-1.5 outline-none"></div>
+        <div class="mb-3"><label class="block text-slate-600 text-xs font-medium mb-1">Link Foto (Image URL)</label><input type="url" id="inv-img" class="w-full border rounded px-3 py-1.5 outline-none"><p class="text-[10px] text-slate-400">Copy Image Address dari Google (Optional)</p></div>
+        <div class="mb-3 flex gap-4"><div class="w-1/2"><label class="block text-slate-600 text-xs font-medium mb-1">Kategori</label><select id="inv-cat" class="w-full border rounded px-3 py-1.5 outline-none"><option value="Card">Single Card</option><option value="Box">Sealed Box</option><option value="Slab">Graded Slab</option><option value="Other">Lainnya</option></select></div><div class="w-1/2"><label class="block text-slate-600 text-xs font-medium mb-1">Status</label><select id="inv-status" class="w-full border rounded px-3 py-1.5 outline-none"><option value="Kept">Disimpan</option><option value="Sold">Terjual</option></select></div></div>
+        <div class="mb-4 flex gap-4"><div class="w-1/2"><label class="block text-slate-600 text-xs font-medium mb-1">Modal / Beli (Rp)</label><input type="number" id="inv-buy" required class="w-full border rounded px-3 py-1.5 outline-none bg-blue-50 text-blue-800 font-bold border-blue-200"></div><div class="w-1/2"><label class="block text-slate-600 text-xs font-medium mb-1">Harga Pasar (Rp)</label><input type="number" id="inv-market" required class="w-full border rounded px-3 py-1.5 outline-none"></div></div>
+        <p class="text-[10px] text-blue-500 mb-4 bg-blue-50 p-2 rounded border border-blue-100">*Otomatis: Menyimpan barang akan otomatis mencatat Pengeluaran (Beli) ke Buku Kas sejumlah angka Modal di atas.</p>
+        <div class="flex justify-end gap-3"><button type="button" onclick="window.closeModal('modal-inv')" class="px-3 py-1 text-sm text-slate-500">Batal</button><button type="submit" class="bg-red-500 text-white px-4 py-1.5 rounded-lg text-sm">Simpan</button></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Transaction Modal -->
+  <div id="modal-trx" class="modal fixed inset-0 z-50 justify-center items-center">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+      <h2 class="text-xl font-bold text-slate-800 mb-4 border-b pb-2">Catat Transaksi</h2>
+      <form id="form-trx" onsubmit="window.saveTrx(event)">
+        <div class="mb-3"><input type="text" id="trx-name" placeholder="Keterangan Transaksi" required class="w-full border rounded px-3 py-2 outline-none"></div>
+        <div class="mb-3"><select id="trx-type" onchange="window.toggleLoanField()" class="w-full border rounded px-3 py-2 outline-none">
+          <option value="Expense">🔴 Pengeluaran Belanja (Expense)</option>
+          <option value="Sales">🟢 Pemasukan Jualan (Sales)</option>
+          <option value="Capital">💉 Suntik Modal (Capital In)</option>
+          <option value="Loan">🔄 Hutang/Pinjaman (Loan)</option>
+        </select></div>
+        <div class="mb-3 hidden" id="trx-loan-div"><input type="text" id="trx-loan-person" placeholder="Hutang dari Siapa?" class="w-full border border-yellow-300 bg-yellow-50 rounded px-3 py-2 outline-none"></div>
+        <div class="mb-3"><input type="number" id="trx-amount" placeholder="Nominal (Rp)" required class="w-full border rounded px-3 py-2 outline-none font-bold text-lg"></div>
+        <div class="mb-4"><input type="date" id="trx-date" required class="w-full border rounded px-3 py-2 outline-none"></div>
+        <div class="flex justify-end gap-3"><button type="button" onclick="window.closeModal('modal-trx')" class="px-3 py-1 text-sm text-slate-500">Batal</button><button type="submit" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm">Simpan</button></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Wishlist Modal -->
+  <div id="modal-wishlist" class="modal fixed inset-0 z-50 justify-center items-center">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+      <h2 class="text-xl font-bold text-slate-800 mb-4 border-b pb-2">Tambah Incaran</h2>
+      <form id="form-wl" onsubmit="window.saveWishlist(event)">
+        <div class="mb-3"><input type="text" id="wl-name" placeholder="Nama Kartu/Box" required class="w-full border rounded px-3 py-2 outline-none"></div>
+        <div class="mb-5"><input type="number" id="wl-target" placeholder="Target Harga Maksimal (Rp)" required class="w-full border rounded px-3 py-2 outline-none"></div>
+        <div class="flex justify-end gap-3"><button type="button" onclick="window.closeModal('modal-wishlist')" class="px-3 py-1 text-sm text-slate-500">Batal</button><button type="submit" class="bg-blue-500 text-white px-4 py-1.5 rounded-lg text-sm">Tambah</button></div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ==============================================
+       FIREBASE SCRIPT (ES MODULE)
+       ============================================== -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = { apiKey: "AIzaSyDgGPKX3ptOs9ocUPuorJU0QQfj4PUb6v4", authDomain: "pokemon-manager-b4f59.firebaseapp.com", projectId: "pokemon-manager-b4f59", storageBucket: "pokemon-manager-b4f59.firebasestorage.app", messagingSenderId: "86287237292", appId: "1:86287237292:web:5325da646689db9261df09", measurementId: "G-5BZFG1G5R6" };
+    
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+    const db = getFirestore(app);
+
+    let inventoryData = [], transactionData = [], wishlistData = [], isAdmin = false;
+    const formatRp = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
+    const getToday = () => new Date().toISOString().split('T')[0];
+    document.getElementById('trx-date').value = getToday();
+
+    window.openModal = (id) => { document.getElementById(id).classList.add('active'); if(id==='modal-inv') document.getElementById('inv-wl-id').value=''; };
+    window.closeModal = (id) => document.getElementById(id).classList.remove('active');
+    window.switchTab = (tabId) => { document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active')); document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active')); document.getElementById(tabId).classList.add('active'); document.getElementById('btn-' + tabId.split('-')[1]).classList.add('active'); };
+    window.toggleLoanField = () => { document.getElementById('trx-type').value === 'Loan' ? document.getElementById('trx-loan-div').classList.remove('hidden') : document.getElementById('trx-loan-div').classList.add('hidden'); };
+
+    // AUTHENTICATION
+    window.loginUser = (e) => { e.preventDefault(); signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-pass').value).then(() => { window.closeModal('modal-login'); }).catch(err => alert("Gagal Login: " + err.message)); };
+    window.loginWithGoogle = () => { signInWithPopup(auth, provider).then(() => { window.closeModal('modal-login'); }).catch(err => alert("Gagal Google Login (Pastikan Provider Google sudah di-Enable di Firebase Console!): \n" + err.message)); };
+    window.logout = () => signOut(auth);
+
+    onAuthStateChanged(auth, (user) => {
+      isAdmin = !!user; document.body.classList.toggle('is-admin', isAdmin);
+      document.querySelectorAll('.viewer-only').forEach(el => el.style.display = isAdmin ? 'none' : 'block');
+      document.querySelectorAll('.admin-only').forEach(el => { if(isAdmin){ if(el.tagName==='TH'||el.tagName==='TD') el.style.display='table-cell'; else if(el.classList.contains('admin-flex')) el.style.display='flex'; else el.style.display='block'; } else el.style.display='none'; });
+      renderAll();
+    });
+
+    onSnapshot(query(collection(db, "inventory"), orderBy("createdAt", "desc")), (snap) => { inventoryData = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderAll(); });
+    onSnapshot(query(collection(db, "transactions"), orderBy("date", "desc")), (snap) => { transactionData = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderAll(); });
+    onSnapshot(query(collection(db, "wishlist"), orderBy("createdAt", "desc")), (snap) => { wishlistData = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderWishlist(); });
+
+    // DATABASE SAVING (WITH AUTO-EXPENSE & WISHLIST CONVERT)
+    window.saveInv = async (e) => {
+      e.preventDefault(); if(!isAdmin) return;
+      try {
+        const buyPrice = parseInt(document.getElementById('inv-buy').value);
+        const invName = document.getElementById('inv-name').value;
+        let linkedTrxId = null;
+
+        // Auto-Expense Logic
+        if(buyPrice > 0) {
+          const trxRef = await addDoc(collection(db, "transactions"), { name: "Beli Stok: " + invName, type: "Expense", amount: buyPrice, date: getToday(), person: "", createdAt: Date.now() });
+          linkedTrxId = trxRef.id;
+        }
+
+        await addDoc(collection(db, "inventory"), {
+          name: invName, set: document.getElementById('inv-set').value || '', imgUrl: document.getElementById('inv-img').value || '',
+          category: document.getElementById('inv-cat').value, status: document.getElementById('inv-status').value,
+          buy: buyPrice, market: parseInt(document.getElementById('inv-market').value), linkedTrxId: linkedTrxId, createdAt: Date.now()
+        });
+
+        // Wishlist Convert Logic
+        const wlId = document.getElementById('inv-wl-id').value;
+        if(wlId) await deleteDoc(doc(db, "wishlist", wlId));
+
+        window.closeModal('modal-inv'); document.getElementById('form-inv').reset(); document.getElementById('inv-wl-id').value = '';
+      } catch (err) { alert(err.message); }
+    };
+
+    window.saveTrx = async (e) => {
+      e.preventDefault(); if(!isAdmin) return;
+      try { await addDoc(collection(db, "transactions"), { name: document.getElementById('trx-name').value, type: document.getElementById('trx-type').value, amount: parseInt(document.getElementById('trx-amount').value), date: document.getElementById('trx-date').value, person: document.getElementById('trx-type').value === 'Loan' ? document.getElementById('trx-loan-person').value : '', createdAt: Date.now() }); window.closeModal('modal-trx'); document.getElementById('form-trx').reset(); document.getElementById('trx-date').value = getToday(); } catch (err) { alert(err.message); }
+    };
+
+    window.saveWishlist = async (e) => {
+      e.preventDefault(); if(!isAdmin) return;
+      try { await addDoc(collection(db, "wishlist"), { name: document.getElementById('wl-name').value, target: parseInt(document.getElementById('wl-target').value), createdAt: Date.now() }); window.closeModal('modal-wishlist'); document.getElementById('form-wl').reset(); } catch (err) { alert(err.message); }
+    };
+
+    // LINKED DELETION
+    window.deleteInvData = async (id, linkedTrxId) => {
+      if(!isAdmin) return;
+      if(confirm('Yakin hapus koleksi ini? (Transaksi pembeliannya di Buku Kas juga akan ikut Dihapus agar Saldo Kas kembali akurat)')) { 
+        try { 
+          await deleteDoc(doc(db, "inventory", id)); 
+          if(linkedTrxId && linkedTrxId !== 'undefined') await deleteDoc(doc(db, "transactions", linkedTrxId)); 
+        } catch(err) { alert(err.message); } 
+      }
+    };
+    
+    window.deleteTrxData = async (col, id) => { if(!isAdmin) return; if(confirm('Yakin ingin menghapus transaksi ini?')) { try { await deleteDoc(doc(db, col, id)); } catch(err) { alert(err.message); } } };
+
+    // WISHLIST BUY BUTTON
+    window.buyWishlist = (id, name, target) => {
+      if(!isAdmin) return;
+      document.getElementById('inv-name').value = name;
+      document.getElementById('inv-buy').value = target;
+      document.getElementById('inv-market').value = target; // Default
+      document.getElementById('inv-wl-id').value = id;
+      window.openModal('modal-inv');
+    };
+
+    window.openQuickSell = (invId, itemName, marketPrice) => { if(!isAdmin) return; document.getElementById('qs-id').value = invId; document.getElementById('qs-name').value = itemName; document.getElementById('qs-price').value = marketPrice; document.getElementById('qs-title').innerText = "Jual: " + itemName; window.openModal('modal-qs'); };
+    window.submitQuickSell = async (e) => {
+      e.preventDefault(); if(!isAdmin) return;
+      const invId = document.getElementById('qs-id').value; const itemName = document.getElementById('qs-name').value; const sellPrice = parseInt(document.getElementById('qs-price').value);
+      try { await updateDoc(doc(db, "inventory", invId), { status: "Sold" }); await addDoc(collection(db, "transactions"), { name: "Jual " + itemName, type: "Sales", amount: sellPrice, date: getToday(), person: "", createdAt: Date.now() }); window.closeModal('modal-qs'); } catch (err) { alert("Gagal memproses Quick Sell: " + err.message); }
+    };
+
+    window.renderInv = () => {
+      const term = (document.getElementById('search-inv')?.value || '').toLowerCase();
+      const filtered = inventoryData.filter(i => i.name.toLowerCase().includes(term) || (i.set && i.set.toLowerCase().includes(term)));
+      document.getElementById('grid-inventory').innerHTML = filtered.map(i => {
+        const imageContent = i.imgUrl ? `<img src="${i.imgUrl}" alt="${i.name}" class="w-full h-full object-cover" onerror="this.outerHTML='<i class=\\'fa-solid fa-image text-4xl text-slate-300\\'></i>'">` : `<i class="fa-solid ${i.category==='Card'?'fa-id-card':(i.category==='Box'?'fa-box-open':'fa-ghost')} text-4xl text-slate-300"></i>`;
+        return `
+        <div class="item-card"><div class="h-44 bg-slate-100 flex flex-col items-center justify-center border-b border-slate-200 relative overflow-hidden">${imageContent}${i.status === 'Sold' ? '<div class="absolute inset-0 bg-white/70 backdrop-blur-[2px] flex items-center justify-center"><span class="bg-slate-800 text-white font-bold px-4 py-1.5 rounded rotate-12 shadow-lg">TERJUAL</span></div>' : ''}</div>
+          <div class="p-4 flex flex-col flex-1"><h3 class="font-bold text-slate-800 text-lg leading-tight mb-1 truncate" title="${i.name}">${i.name}</h3><div class="text-xs text-slate-500 mb-3 flex items-center gap-1"><span class="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">${i.category}</span>${i.set ? `<span class="truncate">${i.set}</span>` : ''}</div>
+            <div class="mt-auto"><div class="flex justify-between items-end mb-1"><span class="text-xs font-semibold text-slate-400">Harga Pasar</span><span class="font-bold text-red-500">${formatRp(i.market)}</span></div>
+              <div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100 mt-2"><span class="text-xs text-slate-500">Modal: <span class="font-medium text-slate-700">${formatRp(i.buy)}</span></span><span class="text-xs font-bold ${i.market-i.buy >= 0 ? 'text-green-600' : 'text-red-600'}">${i.market-i.buy>=0?'+':''}${formatRp(i.market-i.buy)}</span></div>
+            </div></div>
+          <div class="admin-flex border-t border-slate-100 p-2 bg-slate-50 justify-between admin-only" style="display: ${isAdmin?'flex':'none'};">
+            ${i.status === 'Kept' ? `<button onclick="window.openQuickSell('${i.id}', '${i.name}', ${i.market})" class="text-xs font-bold text-green-600 hover:bg-green-100 px-3 py-1.5 rounded flex-1 flex justify-center items-center gap-1 transition"><i class="fa-solid fa-money-bill-wave"></i> Quick Sell</button>` : `<div class="text-xs text-slate-400 font-medium px-3 py-1.5 w-full text-center">Telah Dijual</div>`}
+            <button onclick="window.deleteInvData('${i.id}', '${i.linkedTrxId}')" class="text-xs text-slate-400 hover:text-red-500 px-3 py-1.5 rounded transition"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>`}).join('');
+      if(filtered.length === 0) document.getElementById('grid-inventory').innerHTML = '<div class="col-span-full text-center text-slate-400 py-10">Tidak ada kartu ditemukan.</div>';
+    };
+
+    function renderWishlist() {
+      document.getElementById('grid-wishlist').innerHTML = wishlistData.map(w => `
+        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex justify-between items-center hover:border-blue-300 transition">
+          <div class="flex items-center gap-3"><div class="w-10 h-10 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center"><i class="fa-solid fa-star"></i></div>
+            <div><h3 class="font-bold text-slate-700">${w.name}</h3><p class="text-xs text-slate-500">Target: <span class="font-semibold text-blue-500">${formatRp(w.target)}</span></p></div>
+          </div>
+          <div class="admin-flex gap-2 admin-only" style="display:${isAdmin?'flex':'none'};">
+            <button onclick="window.buyWishlist('${w.id}', '${w.name}', ${w.target})" class="text-green-500 hover:bg-green-50 p-2 rounded-full transition" title="Beli Kartu Ini"><i class="fa-solid fa-cart-shopping"></i></button>
+            <button onclick="window.deleteTrxData('wishlist', '${w.id}')" class="text-slate-300 hover:text-red-500 p-2 rounded-full transition" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>`).join('');
+    }
+
+    function renderAll() {
+      window.renderInv(); renderWishlist();
+      let income = 0, expense = 0, loan = 0, capital = 0;
+      document.getElementById('table-trx-full').innerHTML = transactionData.map(t => {
+        if(t.type === 'Sales') income += t.amount; if(t.type === 'Expense') expense += t.amount; if(t.type === 'Loan') loan += t.amount; if(t.type === 'Capital') capital += t.amount;
+        let colorClass = 'bg-slate-100 text-slate-700';
+        if(t.type === 'Sales') colorClass = 'bg-green-100 text-green-700';
+        if(t.type === 'Expense') colorClass = 'bg-red-100 text-red-700';
+        if(t.type === 'Capital') colorClass = 'bg-blue-100 text-blue-700';
+        if(t.type === 'Loan') colorClass = 'bg-yellow-100 text-yellow-700';
+        
+        return `
+        <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+          <td class="p-3 text-slate-500">${t.date}</td>
+          <td class="p-3"><span class="px-2 py-1 rounded text-xs font-semibold ${colorClass}">${t.type}</span></td>
+          <td class="p-3 font-semibold text-slate-700">${t.name} ${t.type === 'Loan' && t.person ? `<span class="text-yellow-700 font-semibold bg-yellow-100 px-2 py-0.5 rounded text-xs ml-2">👤 Dari: ${t.person}</span>` : ''}</td>
+          <td class="p-3 text-right font-bold ${t.type === 'Sales' || t.type === 'Capital' ? 'text-green-600' : 'text-slate-700'}">${formatRp(t.amount)}</td>
+          <td class="p-3 text-center admin-only" style="display:${isAdmin?'table-cell':'none'};"><button onclick="window.deleteTrxData('transactions', '${t.id}')" class="text-slate-300 hover:text-red-500 transition"><i class="fa-solid fa-trash"></i></button></td>
+        </tr>`}).join('') || '<tr><td colspan="5" class="text-center p-6 text-slate-400">Belum ada transaksi.</td></tr>';
+
+      // SALDO KAS LOGIC = CAPITAL + SALES - EXPENSE
+      const cashBalance = capital + income - expense + loan;
+      document.getElementById('val-cash').innerText = formatRp(cashBalance);
+
+      let assetValue = 0, catCount = { 'Card': 0, 'Box': 0, 'Slab': 0, 'Other': 0 };
+      inventoryData.forEach(i => { if(i.status === 'Kept') assetValue += i.market; catCount[i.category] = (catCount[i.category] || 0) + 1; });
+
+      document.getElementById('val-income').innerText = formatRp(income); document.getElementById('val-expense').innerText = formatRp(expense);
+      document.getElementById('val-asset').innerText = formatRp(assetValue);
+      updateCharts(income, expense, catCount);
+    }
+
+    let barChartInst = null, pieChartInst = null;
+    function updateCharts(income, expense, catCount) {
+      Chart.defaults.color = '#64748b'; Chart.defaults.font.family = "'Inter', sans-serif";
+      const barCtx = document.getElementById('barChart').getContext('2d');
+      if(barChartInst) barChartInst.destroy();
+      barChartInst = new Chart(barCtx, { type: 'bar', data: { labels: ['Bulan Ini'], datasets: [ { label: 'Income', data: [income], backgroundColor: '#10b981', borderRadius: 4 }, { label: 'Expense', data: [expense], backgroundColor: '#ef4444', borderRadius: 4 } ] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } } });
+      const pieCtx = document.getElementById('pieChart').getContext('2d');
+      if(pieChartInst) pieChartInst.destroy();
+      pieChartInst = new Chart(pieCtx, { type: 'doughnut', data: { labels: Object.keys(catCount), datasets: [{ data: Object.values(catCount), backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#94a3b8'], borderWidth: 2, borderColor: '#fff' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } }, cutout: '70%' } });
+    }
+  </script>
+</body>
+</html>
