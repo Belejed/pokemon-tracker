@@ -90,7 +90,7 @@
         <div><h2 class="text-2xl font-bold text-slate-800">Jelajahi Koleksi</h2><p class="text-slate-500 text-sm">Database lengkap aset kartu & box.</p></div>
         <div class="flex gap-3 w-full md:w-auto">
           <div class="relative w-full md:w-64"><i class="fa-solid fa-search absolute left-3 top-3 text-slate-400"></i><input type="text" id="search-inv" onkeyup="window.renderInv()" placeholder="Cari kartu..." class="w-full bg-white border border-slate-200 rounded-full pl-10 pr-4 py-2 text-sm outline-none focus:border-red-400 shadow-sm"></div>
-          <button onclick="window.openModal('modal-inv')" class="admin-only bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow flex items-center gap-2 whitespace-nowrap" style="display:none;"><i class="fa-solid fa-plus"></i> Add Item</button>
+          <button onclick="window.openAddModal()" class="admin-only bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow flex items-center gap-2 whitespace-nowrap" style="display:none;"><i class="fa-solid fa-plus"></i> Add Item</button>
         </div>
       </div>
       <div id="grid-inventory" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
@@ -163,12 +163,14 @@
     </div>
   </div>
 
-  <!-- Add Inventory Modal -->
+  <!-- Add / Edit Inventory Modal -->
   <div id="modal-inv" class="modal fixed inset-0 z-50 justify-center items-center">
     <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
-      <h2 class="text-xl font-bold text-slate-800 mb-4 border-b pb-2">Tambah Koleksi</h2>
+      <h2 class="text-xl font-bold text-slate-800 mb-4 border-b pb-2" id="modal-inv-title">Tambah Koleksi</h2>
       <form id="form-inv" onsubmit="window.saveInv(event)">
         <input type="hidden" id="inv-wl-id">
+        <input type="hidden" id="inv-edit-id">
+        <input type="hidden" id="inv-edit-linked-trx">
         <div class="mb-3"><label class="block text-slate-600 text-xs font-medium mb-1">Nama Kartu/Box</label><input type="text" id="inv-name" required class="w-full border rounded px-3 py-1.5 outline-none"></div>
         <div class="mb-3 flex gap-4">
           <div class="w-1/2"><label class="block text-slate-600 text-xs font-medium mb-1">Ekspansi / Set</label><input type="text" id="inv-set" class="w-full border rounded px-3 py-1.5 outline-none"></div>
@@ -245,10 +247,41 @@
 
     window.openModal = (id) => { 
       document.getElementById(id).classList.add('active'); 
-      if(id === 'modal-inv') {
-        document.getElementById('inv-wl-id').value = '';
-        window.populateGachaDropdown();
-      }
+    };
+    
+    window.openAddModal = () => {
+      if(!isAdmin) return;
+      document.getElementById('form-inv').reset();
+      document.getElementById('inv-edit-id').value = '';
+      document.getElementById('inv-edit-linked-trx').value = '';
+      document.getElementById('inv-wl-id').value = '';
+      document.getElementById('modal-inv-title').innerText = "Tambah Koleksi";
+      window.populateGachaDropdown();
+      window.handleGachaSelect();
+      window.openModal('modal-inv');
+    };
+
+    window.openEditModal = (id) => {
+      if(!isAdmin) return;
+      const item = inventoryData.find(i => i.id === id);
+      if(!item) return;
+      
+      document.getElementById('inv-edit-id').value = item.id;
+      document.getElementById('inv-edit-linked-trx').value = item.linkedTrxId || '';
+      document.getElementById('inv-name').value = item.name;
+      document.getElementById('inv-set').value = item.set || '';
+      document.getElementById('inv-source').value = item.source || '';
+      document.getElementById('inv-img').value = item.imgUrl || '';
+      document.getElementById('inv-cat').value = item.category;
+      document.getElementById('inv-status').value = item.status;
+      document.getElementById('inv-buy').value = item.buy;
+      document.getElementById('inv-market').value = item.market;
+      
+      document.getElementById('modal-inv-title').innerText = "Edit Koleksi";
+      window.populateGachaDropdown();
+      document.getElementById('inv-pulled-from').value = item.pulledFromId || '';
+      window.handleGachaSelect();
+      window.openModal('modal-inv');
     };
     window.closeModal = (id) => document.getElementById(id).classList.remove('active');
     window.switchTab = (tabId) => { document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active')); document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active')); document.getElementById(tabId).classList.add('active'); document.getElementById('btn-' + tabId.split('-')[1]).classList.add('active'); };
@@ -292,34 +325,64 @@
       }
     };
 
-    // SAVING LOGIC
+    // SAVING / EDITING LOGIC
     window.saveInv = async (e) => {
       e.preventDefault(); if(!isAdmin) return;
       try {
-        const buyPrice = parseInt(document.getElementById('inv-buy').value);
+        let buyPrice = parseInt(document.getElementById('inv-buy').value);
         const invName = document.getElementById('inv-name').value;
         const pulledFromId = document.getElementById('inv-pulled-from').value || null;
+        
+        const editId = document.getElementById('inv-edit-id').value;
+        const oldLinkedTrxId = document.getElementById('inv-edit-linked-trx').value;
         let linkedTrxId = null;
 
-        // Jika bukan kartu Gacha, dan modal > 0, buat transaksi Expense
-        if(buyPrice > 0 && !pulledFromId) {
-          const trxRef = await addDoc(collection(db, "transactions"), { name: "Beli Stok: " + invName, type: "Expense", amount: buyPrice, date: getToday(), person: "", createdAt: Date.now() });
-          linkedTrxId = trxRef.id;
-        }
+        if (editId) {
+          // --- EDIT MODE ---
+          linkedTrxId = (oldLinkedTrxId && oldLinkedTrxId !== 'undefined' && oldLinkedTrxId !== 'null') ? oldLinkedTrxId : null;
+          
+          if (pulledFromId) {
+            buyPrice = 0; // Kunci modal gacha
+            if (linkedTrxId) { await deleteDoc(doc(db, "transactions", linkedTrxId)); linkedTrxId = null; }
+          } else {
+            if (linkedTrxId) {
+              if (buyPrice > 0) { await updateDoc(doc(db, "transactions", linkedTrxId), { amount: buyPrice, name: "Beli Stok: " + invName }); }
+              else { await deleteDoc(doc(db, "transactions", linkedTrxId)); linkedTrxId = null; }
+            } else {
+              if (buyPrice > 0) { const trxRef = await addDoc(collection(db, "transactions"), { name: "Beli Stok: " + invName, type: "Expense", amount: buyPrice, date: getToday(), person: "", createdAt: Date.now() }); linkedTrxId = trxRef.id; }
+            }
+          }
 
-        await addDoc(collection(db, "inventory"), {
-          name: invName, set: document.getElementById('inv-set').value || '', imgUrl: document.getElementById('inv-img').value || '',
-          source: document.getElementById('inv-source').value || '',
-          category: document.getElementById('inv-cat').value, status: document.getElementById('inv-status').value,
-          buy: buyPrice, market: parseInt(document.getElementById('inv-market').value), 
-          linkedTrxId: linkedTrxId, pulledFromId: pulledFromId, createdAt: Date.now()
-        });
+          await updateDoc(doc(db, "inventory", editId), {
+            name: invName, set: document.getElementById('inv-set').value || '', imgUrl: document.getElementById('inv-img').value || '',
+            source: document.getElementById('inv-source').value || '',
+            category: document.getElementById('inv-cat').value, status: document.getElementById('inv-status').value,
+            buy: buyPrice, market: parseInt(document.getElementById('inv-market').value), 
+            linkedTrxId: linkedTrxId, pulledFromId: pulledFromId
+          });
+
+        } else {
+          // --- ADD MODE ---
+          if(buyPrice > 0 && !pulledFromId) {
+            const trxRef = await addDoc(collection(db, "transactions"), { name: "Beli Stok: " + invName, type: "Expense", amount: buyPrice, date: getToday(), person: "", createdAt: Date.now() });
+            linkedTrxId = trxRef.id;
+          }
+
+          await addDoc(collection(db, "inventory"), {
+            name: invName, set: document.getElementById('inv-set').value || '', imgUrl: document.getElementById('inv-img').value || '',
+            source: document.getElementById('inv-source').value || '',
+            category: document.getElementById('inv-cat').value, status: document.getElementById('inv-status').value,
+            buy: buyPrice, market: parseInt(document.getElementById('inv-market').value), 
+            linkedTrxId: linkedTrxId, pulledFromId: pulledFromId, createdAt: Date.now()
+          });
+        }
 
         const wlId = document.getElementById('inv-wl-id').value;
         if(wlId) await deleteDoc(doc(db, "wishlist", wlId));
 
-        window.closeModal('modal-inv'); document.getElementById('form-inv').reset(); document.getElementById('inv-wl-id').value = '';
-        window.handleGachaSelect(); // Reset UI
+        window.closeModal('modal-inv'); document.getElementById('form-inv').reset(); 
+        document.getElementById('inv-wl-id').value = ''; document.getElementById('inv-edit-id').value = ''; document.getElementById('inv-edit-linked-trx').value = '';
+        window.handleGachaSelect();
       } catch (err) { alert(err.message); }
     };
 
@@ -405,12 +468,11 @@
               <div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100 mt-2"><span class="text-xs text-slate-500">Modal: <span class="font-medium text-slate-700">${formatRp(i.buy)}</span></span><span class="text-xs font-bold ${i.market-i.buy >= 0 ? 'text-green-600' : 'text-red-600'}">${i.market-i.buy>=0?'+':''}${formatRp(i.market-i.buy)}</span></div>
               `}
             </div></div>
-          <div class="admin-flex border-t border-slate-100 p-2 bg-slate-50 justify-between admin-only gap-2" style="display: ${isAdmin?'flex':'none'};">
-            ${i.status === 'Kept' ? `<button onclick="window.openQuickSell('${i.id}', '${i.name}', ${i.market})" class="text-xs font-bold text-green-600 bg-white border border-green-200 hover:bg-green-50 px-3 py-1.5 rounded flex-1 flex justify-center items-center transition shadow-sm"><i class="fa-solid fa-handshake"></i> Sell</button>` : ''}
-            ${i.status === 'Kept' && (i.category === 'Box' || i.category === 'Pack') ? `<button onclick="window.ripBox('${i.id}', '${i.name}')" class="text-xs font-bold text-purple-600 bg-white border border-purple-200 hover:bg-purple-50 px-3 py-1.5 rounded flex-1 flex justify-center items-center transition shadow-sm"><i class="fa-solid fa-scissors"></i> Buka</button>` : ''}
-            ${i.status === 'Opened' ? `<div class="text-xs text-slate-400 font-medium px-3 py-1.5 w-full text-center">Box Telah Dibuka</div>` : ''}
-            ${i.status === 'Sold' ? `<div class="text-xs text-slate-400 font-medium px-3 py-1.5 w-full text-center">Telah Dijual</div>` : ''}
-            <button onclick="window.deleteInvData('${i.id}', '${i.linkedTrxId}')" class="text-xs text-slate-400 hover:text-red-500 px-3 py-1.5 rounded transition bg-white border border-slate-200 hover:border-red-200 shadow-sm"><i class="fa-solid fa-trash"></i></button>
+          <div class="admin-flex border-t border-slate-100 p-2 bg-slate-50 justify-between admin-only gap-2 flex-wrap" style="display: ${isAdmin?'flex':'none'};">
+            ${i.status === 'Kept' ? `<button onclick="window.openQuickSell('${i.id}', '${i.name}', ${i.market})" class="text-[11px] font-bold text-green-600 bg-white border border-green-200 hover:bg-green-50 px-2 py-1.5 rounded flex-1 flex justify-center items-center transition shadow-sm"><i class="fa-solid fa-handshake mr-1"></i> Sell</button>` : ''}
+            ${i.status === 'Kept' && (i.category === 'Box' || i.category === 'Pack') ? `<button onclick="window.ripBox('${i.id}', '${i.name}')" class="text-[11px] font-bold text-purple-600 bg-white border border-purple-200 hover:bg-purple-50 px-2 py-1.5 rounded flex-1 flex justify-center items-center transition shadow-sm"><i class="fa-solid fa-scissors mr-1"></i> Buka</button>` : ''}
+            <button onclick="window.openEditModal('${i.id}')" class="text-[11px] font-bold text-blue-600 bg-white border border-blue-200 hover:bg-blue-50 px-2 py-1.5 rounded flex-1 flex justify-center items-center transition shadow-sm"><i class="fa-solid fa-pencil mr-1"></i> Edit</button>
+            <button onclick="window.deleteInvData('${i.id}', '${i.linkedTrxId}')" class="text-[11px] font-bold text-red-500 bg-white border border-red-200 hover:bg-red-50 px-2 py-1.5 rounded flex-none flex justify-center items-center transition shadow-sm"><i class="fa-solid fa-trash"></i></button>
           </div>
         </div>`}).join('');
       if(filtered.length === 0) document.getElementById('grid-inventory').innerHTML = '<div class="col-span-full text-center text-slate-400 py-10">Tidak ada kartu ditemukan.</div>';
