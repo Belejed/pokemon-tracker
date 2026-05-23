@@ -213,8 +213,12 @@
 
         <div class="mb-3"><label class="block text-slate-600 text-xs font-medium mb-1">Link Foto (Image URL)</label><input type="url" id="inv-img" class="w-full border rounded px-3 py-1.5 outline-none"><p class="text-[10px] text-slate-400 mt-1">Copy Image Address dari Google (Optional)</p></div>
         <div class="mb-3 flex flex-col sm:flex-row gap-3 sm:gap-4">
-          <div class="w-full sm:w-1/2"><label class="block text-slate-600 text-xs font-medium mb-1">Kategori</label><select id="inv-cat" class="w-full border rounded px-3 py-1.5 outline-none"><option value="Card">Single Card</option><option value="Box">Sealed Box / Pack</option><option value="Slab">Graded Slab</option><option value="Other">Lainnya</option></select></div>
-          <div class="w-full sm:w-1/2"><label class="block text-slate-600 text-xs font-medium mb-1">Status</label><select id="inv-status" class="w-full border rounded px-3 py-1.5 outline-none"><option value="Kept">Disimpan</option><option value="Sold">Terjual</option></select></div>
+          <div class="w-full sm:w-1/3"><label class="block text-slate-600 text-xs font-medium mb-1">Kategori</label><select id="inv-cat" class="w-full border rounded px-3 py-1.5 outline-none"><option value="Card">Single Card</option><option value="Box">Sealed Box / Pack</option><option value="Slab">Graded Slab</option><option value="Other">Lainnya</option></select></div>
+          <div class="w-full sm:w-1/3"><label class="block text-slate-600 text-xs font-medium mb-1">Rarity</label>
+            <input type="text" id="inv-rarity" list="rarity-list" placeholder="RR, AR, SR, SAR..." class="w-full border rounded px-3 py-1.5 outline-none uppercase text-sm">
+            <datalist id="rarity-list"><option value="RR"><option value="AR"><option value="SR"><option value="SAR"><option value="UR"><option value="Promo"><option value="C/U/R"></datalist>
+          </div>
+          <div class="w-full sm:w-1/3"><label class="block text-slate-600 text-xs font-medium mb-1">Status</label><select id="inv-status" class="w-full border rounded px-3 py-1.5 outline-none"><option value="Kept">Disimpan</option><option value="Sold">Terjual</option></select></div>
         </div>
         
         <div class="mb-4 flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -284,6 +288,7 @@
       document.getElementById('inv-edit-id').value = '';
       document.getElementById('inv-edit-linked-trx').value = '';
       document.getElementById('inv-wl-id').value = '';
+      document.getElementById('inv-rarity').value = '';
       document.getElementById('modal-inv-title').innerText = "Tambah Koleksi";
       window.populateGachaDropdown();
       window.handleGachaSelect();
@@ -302,6 +307,7 @@
       document.getElementById('inv-source').value = item.source || '';
       document.getElementById('inv-img').value = item.imgUrl || '';
       document.getElementById('inv-cat').value = item.category;
+      document.getElementById('inv-rarity').value = item.rarity || '';
       document.getElementById('inv-status').value = item.status;
       document.getElementById('inv-buy').value = item.buy;
       document.getElementById('inv-market').value = item.market;
@@ -397,6 +403,7 @@
             name: invName, set: document.getElementById('inv-set').value || '', imgUrl: document.getElementById('inv-img').value || '',
             source: document.getElementById('inv-source').value || '',
             category: document.getElementById('inv-cat').value, status: document.getElementById('inv-status').value,
+            rarity: document.getElementById('inv-rarity').value.toUpperCase() || '',
             buy: buyPrice, market: parseInt(document.getElementById('inv-market').value), 
             linkedTrxId: linkedTrxId, pulledFromId: pulledFromId
           });
@@ -412,6 +419,7 @@
             name: invName, set: document.getElementById('inv-set').value || '', imgUrl: document.getElementById('inv-img').value || '',
             source: document.getElementById('inv-source').value || '',
             category: document.getElementById('inv-cat').value, status: document.getElementById('inv-status').value,
+            rarity: document.getElementById('inv-rarity').value.toUpperCase() || '',
             buy: buyPrice, market: parseInt(document.getElementById('inv-market').value), 
             linkedTrxId: linkedTrxId, pulledFromId: pulledFromId, createdAt: Date.now()
           });
@@ -499,6 +507,7 @@
             <h3 class="font-bold text-slate-800 text-sm md:text-lg leading-tight mb-1 truncate" title="${i.name}">${i.name}</h3>
             <div class="text-[10px] md:text-[11px] text-slate-500 mb-2 md:mb-3 flex items-center flex-wrap gap-1">
               <span class="bg-slate-100 px-1.5 md:px-2 py-0.5 rounded border border-slate-200">${i.category}</span>
+              ${i.rarity ? `<span class="bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 font-extrabold px-1.5 py-0.5 rounded border border-yellow-500 shadow-sm text-[10px] uppercase tracking-wider"><i class="fa-solid fa-star text-[8px] mr-0.5"></i>${i.rarity}</span>` : ''}
               ${i.set ? `<span class="truncate max-w-[80px]" title="${i.set}">${i.set}</span>` : ''}
               ${i.source ? `<span class="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded flex items-center gap-1"><i class="fa-solid fa-store"></i> ${i.source}</span>` : ''}
             </div>
