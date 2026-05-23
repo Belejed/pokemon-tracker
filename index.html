@@ -215,8 +215,18 @@
         <div class="mb-3 flex flex-col sm:flex-row gap-3 sm:gap-4">
           <div class="w-full sm:w-1/3"><label class="block text-slate-600 text-xs font-medium mb-1">Kategori</label><select id="inv-cat" class="w-full border rounded px-3 py-1.5 outline-none"><option value="Card">Single Card</option><option value="Box">Sealed Box / Pack</option><option value="Slab">Graded Slab</option><option value="Other">Lainnya</option></select></div>
           <div class="w-full sm:w-1/3"><label class="block text-slate-600 text-xs font-medium mb-1">Rarity</label>
-            <input type="text" id="inv-rarity" list="rarity-list" placeholder="RR, AR, SR, SAR..." class="w-full border rounded px-3 py-1.5 outline-none uppercase text-sm">
-            <datalist id="rarity-list"><option value="RR"><option value="AR"><option value="SR"><option value="SAR"><option value="UR"><option value="Promo"><option value="C/U/R"></datalist>
+            <select id="inv-rarity" class="w-full border rounded px-3 py-1.5 outline-none text-sm">
+              <option value="">-- Kosong / Biasa --</option>
+              <option value="C">C (Common)</option>
+              <option value="U">U (Uncommon)</option>
+              <option value="R">R (Rare)</option>
+              <option value="RR">RR (Double Rare)</option>
+              <option value="AR">AR (Art Rare)</option>
+              <option value="SR">SR (Super Rare)</option>
+              <option value="SAR">SAR (Special Art Rare)</option>
+              <option value="UR">UR (Ultra Rare)</option>
+              <option value="Promo">Promo</option>
+            </select>
           </div>
           <div class="w-full sm:w-1/3"><label class="block text-slate-600 text-xs font-medium mb-1">Status</label><select id="inv-status" class="w-full border rounded px-3 py-1.5 outline-none"><option value="Kept">Disimpan</option><option value="Sold">Terjual</option></select></div>
         </div>
