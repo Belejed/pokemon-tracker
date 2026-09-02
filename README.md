@@ -13,8 +13,6 @@
 [![Firebase](https://img.shields.io/badge/Firebase-v10-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![TCGdex API](https://img.shields.io/badge/TCGdex-Indonesia_API-8B5CF6)](https://tcgdex.dev/)
 
-🔗 **Live Demo:** [https://belejed.github.io/pokemon-tracker/](https://belejed.github.io/pokemon-tracker/)
-
 </div>
 
 ---
