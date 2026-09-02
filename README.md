@@ -1,4 +1,4 @@
-# ⚡ Pokémon Tracker Indonesia
+# ⚡ Pokémon Tracker Indonesia (Discontinued)
 
 <div align="center">
 
