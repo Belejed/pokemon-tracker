@@ -80,7 +80,7 @@ const TrackerContext = createContext<TrackerContextType | undefined>(undefined);
 export const TrackerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAdmin } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+  const [activeTab, setActiveTab] = useState<TabType>('catalog');
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);

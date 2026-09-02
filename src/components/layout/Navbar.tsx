@@ -1,9 +1,9 @@
 import React from 'react';
 import { 
-  LayoutDashboard, 
+  Sparkles, 
   Layers, 
-  ArrowLeftRight, 
-  Bookmark, 
+  Box, 
+  Wallet, 
   FileSpreadsheet, 
   Lock, 
   Unlock, 
@@ -24,11 +24,11 @@ export const Navbar: React.FC = () => {
     exportInventoryAndTransactionsCSV(inventory, transactions);
   };
 
-  const navTabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
-    { id: 'inventory', label: 'Katalog', icon: <Layers className="w-4 h-4" /> },
-    { id: 'transactions', label: 'Transaksi', icon: <ArrowLeftRight className="w-4 h-4" /> },
-    { id: 'wishlist', label: 'Wishlist', icon: <Bookmark className="w-4 h-4" /> },
+  const navTabs: { id: TabType; label: string; icon: React.ReactNode; adminOnly?: boolean }[] = [
+    { id: 'catalog', label: 'Katalog Kartu', icon: <Sparkles className="w-4 h-4" /> },
+    { id: 'inventory', label: 'Inventaris', icon: <Layers className="w-4 h-4" /> },
+    { id: 'sets', label: 'Set & Seri ID', icon: <Box className="w-4 h-4" /> },
+    { id: 'dashboard', label: 'Buku Kas & Portofolio', icon: <Wallet className="w-4 h-4" />, adminOnly: true },
   ];
 
   return (
@@ -36,7 +36,7 @@ export const Navbar: React.FC = () => {
       {/* Brand Logo */}
       <div 
         className="flex items-center gap-2.5 font-extrabold text-lg md:text-xl text-slate-800 tracking-tight cursor-pointer select-none"
-        onClick={() => setActiveTab('dashboard')}
+        onClick={() => setActiveTab('catalog')}
       >
         <div className="relative w-8 h-8 flex items-center justify-center">
           <img 
@@ -53,50 +53,50 @@ export const Navbar: React.FC = () => {
 
       {/* Desktop Navigation Tabs */}
       <nav className="hidden md:flex items-center gap-1.5 mx-2 bg-slate-100/80 p-1 rounded-full border border-slate-200/60">
-        {navTabs.map(tab => {
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 ${
-                isActive
-                  ? 'bg-white text-red-600 shadow-sm border border-slate-200/60'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-              }`}
-            >
-              {tab.icon}
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
+        {navTabs
+          .filter(tab => !tab.adminOnly || isAdmin)
+          .map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 ${
+                  isActive
+                    ? 'bg-white text-red-600 shadow-sm border border-slate-200/60'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                }`}
+              >
+                {tab.icon}
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
       </nav>
 
       {/* Action Buttons & Auth */}
       <div className="flex items-center gap-1.5 md:gap-2.5">
-        {/* Quick Camera Scanner Button (Admin Only) */}
-        {isAdmin && (
-          <button
-            onClick={openScannerModal}
-            className="bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 p-2 md:px-3 md:py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
-            title="Scan Kartu dari Kamera (OCR)"
-          >
-            <Camera className="w-4 h-4 text-purple-600" />
-            <span className="hidden lg:inline">Scan Kamera</span>
-          </button>
-        )}
+        {/* Public Camera Scanner Button (Accessible to all!) */}
+        <button
+          onClick={openScannerModal}
+          className="bg-purple-600 hover:bg-purple-700 text-white p-2 md:px-3.5 md:py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
+          title="Scan Kartu dari Kamera (OCR)"
+        >
+          <Camera className="w-4 h-4" />
+          <span className="hidden lg:inline">Scan Kamera</span>
+        </button>
 
         {/* Role Badge */}
         <div className="bg-white px-2.5 py-1.5 rounded-full shadow-sm border border-slate-200 text-[11px] font-semibold text-slate-600 flex items-center gap-1.5">
           {isAdmin ? (
             <>
               <Unlock className="w-3.5 h-3.5 text-emerald-500" />
-              <span className="hidden sm:inline text-emerald-700 font-bold">Admin Mode</span>
+              <span className="hidden sm:inline text-emerald-700 font-bold">Admin</span>
             </>
           ) : (
             <>
               <Lock className="w-3.5 h-3.5 text-slate-400" />
-              <span className="hidden sm:inline text-slate-500">Read-Only</span>
+              <span className="hidden sm:inline text-slate-500">Publik</span>
             </>
           )}
         </div>
@@ -105,7 +105,7 @@ export const Navbar: React.FC = () => {
         {isAdmin && (
           <button
             onClick={handleExport}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white p-2 md:px-3.5 md:py-1.5 rounded-full shadow-sm text-xs md:text-sm font-semibold transition flex items-center justify-center gap-1.5"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white p-2 md:px-3 md:py-1.5 rounded-full shadow-sm text-xs font-semibold transition flex items-center justify-center gap-1.5"
             title="Export CSV / Excel"
           >
             <FileSpreadsheet className="w-4 h-4" />
@@ -117,7 +117,7 @@ export const Navbar: React.FC = () => {
         {isAdmin ? (
           <button
             onClick={logout}
-            className="bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 p-2 md:px-3.5 md:py-1.5 rounded-full text-xs md:text-sm font-semibold transition flex items-center justify-center gap-1.5"
+            className="bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 p-2 md:px-3 md:py-1.5 rounded-full text-xs font-semibold transition flex items-center justify-center gap-1.5"
             title="Logout"
           >
             <LogOut className="w-4 h-4" />

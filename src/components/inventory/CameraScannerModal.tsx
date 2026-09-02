@@ -4,16 +4,21 @@ import {
   SwitchCamera, 
   Upload, 
   Loader2, 
-  Search
+  Search,
+  ExternalLink,
+  Plus
 } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { useTracker } from '../../context/TrackerContext';
+import { useAuth } from '../../context/AuthContext';
 import { ocrService, OCRScanResult } from '../../services/ocrService';
 import { tcgdexService } from '../../services/tcgdexService';
 import { TCGdexCardSummary } from '../../types/tcgdex';
+import { getTokopediaSearchUrl, getShopeeSearchUrl } from '../../utils/ecommerce';
 
 export const CameraScannerModal: React.FC = () => {
   const { isScannerModalOpen, closeScannerModal, saveInventoryItem } = useTracker();
+  const { isAdmin } = useAuth();
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -158,8 +163,9 @@ export const CameraScannerModal: React.FC = () => {
     }
   };
 
-  // Select card and save to Inventory
+  // Select card and save to Inventory (Admin)
   const handleSelectCard = async (cardSummary: TCGdexCardSummary) => {
+    if (!isAdmin) return;
     setIsProcessing(true);
     setStatusMessage(`Mengambil info lengkap kartu ${cardSummary.name}...`);
     try {
@@ -188,7 +194,7 @@ export const CameraScannerModal: React.FC = () => {
         tcgdexId: cardSummary.id
       });
 
-      alert(`✅ Berhasil menambahkan "${cardName}" ke Katalog Koleksi! Silakan edit harga beli / pasar jika perlu.`);
+      alert(`✅ Berhasil menambahkan "${cardName}" ke Inventaris!`);
       closeScannerModal();
     } catch (err: any) {
       alert(`Gagal menambahkan kartu: ${err.message}`);
@@ -341,42 +347,79 @@ export const CameraScannerModal: React.FC = () => {
           </div>
         </div>
 
-        {/* Matched TCGdex Cards List */}
+        {/* Matched TCGdex Cards List with Tokopedia / Shopee buttons */}
         {matchedCards.length > 0 && (
           <div className="space-y-2">
             <div className="text-xs font-bold text-slate-700 flex items-center justify-between">
-              <span>Pilih Kartu yang Cocok:</span>
-              <span className="text-[10px] text-slate-400">1-Klik Tambah ke Katalog</span>
+              <span>Kartu yang Cocok:</span>
+              <span className="text-[10px] text-slate-400">Cek harga pasar atau simpan</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1 custom-scrollbar">
-              {matchedCards.map(card => (
-                <div
-                  key={card.id}
-                  onClick={() => handleSelectCard(card)}
-                  className="bg-white border border-slate-200 hover:border-purple-400 p-2.5 rounded-xl flex items-center gap-3 cursor-pointer hover:shadow-md transition group"
-                >
-                  {card.image ? (
-                    <img
-                      src={`${card.image}/low.webp`}
-                      alt={card.name}
-                      className="w-10 h-14 object-contain rounded bg-slate-50 flex-shrink-0"
-                    />
-                  ) : (
-                    <div className="w-10 h-14 bg-slate-100 rounded flex items-center justify-center text-slate-400 text-base flex-shrink-0">
-                      🎴
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
+              {matchedCards.map(card => {
+                const topTokopedia = getTokopediaSearchUrl(card.name);
+                const topShopee = getShopeeSearchUrl(card.name);
+
+                return (
+                  <div
+                    key={card.id}
+                    className="bg-white border border-slate-200 p-2.5 rounded-xl flex flex-col justify-between gap-2 shadow-sm"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      {card.image ? (
+                        <img
+                          src={`${card.image}/low.webp`}
+                          alt={card.name}
+                          className="w-10 h-14 object-contain rounded bg-slate-50 flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-14 bg-slate-100 rounded flex items-center justify-center text-slate-400 text-base flex-shrink-0">
+                          🎴
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-slate-800 truncate">
+                          {card.name}
+                        </p>
+                        <p className="text-[10px] text-slate-400">ID: {card.id}</p>
+                      </div>
                     </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-slate-800 truncate group-hover:text-purple-700">
-                      {card.name}
-                    </p>
-                    <p className="text-[10px] text-slate-400">ID: {card.id}</p>
-                    <span className="inline-block mt-1 text-[9px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">
-                      + Tambahkan
-                    </span>
+
+                    {/* Price check & Save buttons */}
+                    <div className="flex items-center justify-between gap-1 pt-1.5 border-t border-slate-100">
+                      <div className="flex items-center gap-1">
+                        <a
+                          href={topTokopedia}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded flex items-center gap-0.5 hover:bg-emerald-100 transition"
+                        >
+                          <span>Tokopedia</span>
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                        <a
+                          href={topShopee}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-orange-50 text-orange-600 text-[10px] font-bold px-2 py-1 rounded flex items-center gap-0.5 hover:bg-orange-100 transition"
+                        >
+                          <span>Shopee</span>
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                      </div>
+
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleSelectCard(card)}
+                          className="bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold px-2 py-1 rounded transition flex items-center gap-1"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Inventaris</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

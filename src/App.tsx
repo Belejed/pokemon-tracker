@@ -3,10 +3,12 @@ import { AuthProvider } from './context/AuthContext';
 import { TrackerProvider, useTracker } from './context/TrackerContext';
 import { Navbar } from './components/layout/Navbar';
 import { BottomNav } from './components/layout/BottomNav';
-import { DashboardTab } from './components/dashboard/DashboardTab';
+
+// Primary Tabs
+import { CatalogTab } from './components/catalog/CatalogTab';
 import { InventoryTab } from './components/inventory/InventoryTab';
-import { TransactionsTab } from './components/transactions/TransactionsTab';
-import { WishlistTab } from './components/wishlist/WishlistTab';
+import { SetsTab } from './components/sets/SetsTab';
+import { DashboardTab } from './components/dashboard/DashboardTab';
 
 // Modals
 import { ItemModal } from './components/inventory/ItemModal';
@@ -27,10 +29,10 @@ const TrackerContent: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="max-w-6xl mx-auto w-full flex-1">
-        {activeTab === 'dashboard' && <DashboardTab />}
+        {activeTab === 'catalog' && <CatalogTab />}
         {activeTab === 'inventory' && <InventoryTab />}
-        {activeTab === 'transactions' && <TransactionsTab />}
-        {activeTab === 'wishlist' && <WishlistTab />}
+        {activeTab === 'sets' && <SetsTab />}
+        {activeTab === 'dashboard' && <DashboardTab />}
       </main>
 
       {/* All Application Modals */}
@@ -49,7 +51,7 @@ const TrackerContent: React.FC = () => {
       <footer className="max-w-6xl mx-auto w-full text-center mt-12 pt-6 border-t border-slate-200/60 text-xs text-slate-400">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
           <p>
-            ⚡ <strong>Pokémon Tracker Indonesia</strong> &copy; {new Date().getFullYear()} &bull; Open Source under MIT License.
+            ⚡ <strong>Pokémon Tracker Indonesia</strong> &bull; Katalog & Inventaris Koleksi Pokémon TCG Indonesia.
           </p>
           <div className="flex items-center gap-3">
             <a

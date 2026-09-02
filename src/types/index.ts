@@ -1,7 +1,7 @@
 export type CategoryType = 'Card' | 'Box' | 'Pack' | 'Slab' | 'Other';
 export type StatusType = 'Kept' | 'Sold' | 'Opened';
 export type TransactionType = 'Expense' | 'Sales' | 'Capital' | 'Loan';
-export type TabType = 'dashboard' | 'inventory' | 'transactions' | 'wishlist';
+export type TabType = 'catalog' | 'inventory' | 'sets' | 'dashboard';
 
 export interface InventoryItem {
   id: string;
@@ -17,7 +17,7 @@ export interface InventoryItem {
   imgUrl?: string;
   notes?: string;
   linkedTrxId?: string | null;
-  pulledFromId?: string | null; // ID of the parent box if obtained via gacha
+  pulledFromId?: string | null; // ID of parent box if obtained via gacha
   tcgdexId?: string;
   createdAt?: number;
 }
